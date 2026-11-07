@@ -61,9 +61,14 @@ final class PlatformModule implements Module
     /** What the school's login page shows before anyone signs in. */
     private function publicSchool(Request $req): array
     {
-        $s = $this->s->db->one('SELECT name, slug, logo_url, color, city, status FROM schools WHERE slug = ?', [strtolower($req->param('slug'))])
+        $s = $this->s->db->one('SELECT name, slug, logo_url, color, city, phone, status, settings FROM schools WHERE slug = ?', [strtolower($req->param('slug'))])
             ?? throw HttpError::notFound('We could not find this school. Please check the link.');
-        return ['name' => $s['name'], 'slug' => $s['slug'], 'logoUrl' => $s['logo_url'], 'color' => $s['color'], 'city' => $s['city'], 'paused' => $s['status'] === 'paused'];
+        $settings = self::settings($s);
+        return [
+            'name' => $s['name'], 'slug' => $s['slug'], 'logoUrl' => $s['logo_url'], 'color' => $s['color'], 'city' => $s['city'],
+            'phone' => $s['phone'], 'paused' => $s['status'] === 'paused',
+            'admissionsOpen' => (bool)($settings['admissionsOpen'] ?? false), 'loginBoard' => $settings['loginBoard'] ?? null,
+        ];
     }
 
     private function listSchools(): array
@@ -147,8 +152,15 @@ final class PlatformModule implements Module
         return Response::created(['userId' => $userId, 'inviteLink' => $link]);
     }
 
+    /** The school's settings JSON (admissionsOpen, loginBoard {imageUrl, headline, lines}). */
+    public static function settings(array $school): array
+    {
+        return isset($school['settings']) && $school['settings'] ? (json_decode($school['settings'], true) ?: []) : [];
+    }
+
     public static function schoolOut(array $s): array
     {
+        $settings = self::settings($s);
         return [
             'id' => (int)$s['id'], 'slug' => $s['slug'], 'name' => $s['name'], 'board' => $s['board'],
             'state' => $s['state'], 'city' => $s['city'], 'phone' => $s['phone'], 'address' => $s['address'],
@@ -156,6 +168,7 @@ final class PlatformModule implements Module
             'students' => isset($s['students']) ? (int)$s['students'] : null,
             'staff' => isset($s['staff']) ? (int)$s['staff'] : null,
             'createdAt' => $s['created_at'],
+            'admissionsOpen' => (bool)($settings['admissionsOpen'] ?? false), 'loginBoard' => $settings['loginBoard'] ?? null,
         ];
     }
 }

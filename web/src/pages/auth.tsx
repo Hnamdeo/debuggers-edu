@@ -3,10 +3,9 @@ import { ApiError, api, get, post, setToken } from '../lib/api'
 import { useSession } from '../lib/session'
 import { navigate, queryParam } from '../lib/router'
 import { t } from '../lib/i18n'
-import type { Profile, SignedIn } from '../lib/types'
+import type { LoginBoard, Profile, PublicSchool, SignedIn } from '../lib/types'
 import { Alert, Button, Credit, Field, Input, Loading, PasswordInput } from '../ui/kit'
 
-interface PublicSchool { name: string; slug: string; logoUrl: string | null; color: string; city: string | null; paused: boolean }
 
 /** After sign-in: go to the school in the link, or the only school, or let them pick. */
 export function goAfterSignIn(p: Profile, slug?: string): void {
@@ -70,14 +69,48 @@ export function SchoolLogin({ slug }: { slug: string }) {
   if (error) return <AuthFrame><Alert>{error}</Alert></AuthFrame>
   if (!school) return <AuthFrame><Loading /></AuthFrame>
   return (
-    <AuthFrame color={school.color}>
-      <div className="school-badge">
-        {school.logoUrl ? <img src={school.logoUrl} alt="" /> : <span className="brand-dot big">{school.name.slice(0, 1)}</span>}
-        <h1>{school.name}</h1>
-        {school.city ? <p className="muted">{school.city}</p> : null}
+    <div className="login-page" style={{ ['--brand' as string]: school.color }}>
+      <SchoolBoard school={school} />
+      <section className="login-side">
+        <div className="auth-card">
+          <div className="school-badge">
+            {school.logoUrl ? <img src={school.logoUrl} alt="" /> : <span className="brand-dot big">{school.name.slice(0, 1)}</span>}
+            <h1>{school.name}</h1>
+            {school.city ? <p className="muted">{school.city}</p> : null}
+          </div>
+          <div>
+            <h2 className="login-hello">{t('Sign in')} 👋</h2>
+            <p className="muted small">{t('Teachers, parents and school office')}</p>
+          </div>
+          {school.paused ? <Alert kind="info">This school account is paused. Please contact the school office.</Alert> : <LoginForm slug={slug} color={school.color} />}
+          {school.admissionsOpen && !school.paused ? (
+            <a className="btn btn-soft btn-block" href={`/${slug}/apply`} onClick={e => { e.preventDefault(); navigate(`/${slug}/apply`) }}>📝 {t('New admission? Apply online')}</a>
+          ) : null}
+        </div>
+        <Credit />
+      </section>
+    </div>
+  )
+}
+
+const DEFAULT_LINES = ['✅ Daily attendance in one tap', '📚 Homework and notices for parents', '📖 Syllabus and lesson progress', '🎬 Video lessons from Thinkle Tots']
+
+/** The big left panel: the school's own banner, headline and lines, or a friendly default. */
+function SchoolBoard({ school }: { school: PublicSchool }) {
+  const board: LoginBoard = school.loginBoard ?? {}
+  const lines = board.lines?.length ? board.lines : DEFAULT_LINES.map(l => t(l))
+  return (
+    <section className={`login-board ${board.imageUrl ? 'has-image' : ''}`} style={board.imageUrl ? { backgroundImage: `url("${board.imageUrl.replace(/"/g, '')}")` } : undefined}>
+      <div className="board-top">
+        {school.phone ? <a href={`tel:${school.phone}`} className="board-chip">📞 {t('School office')}: {school.phone}</a> : <span />}
+        {school.admissionsOpen && !school.paused ? <a href={`/${school.slug}/apply`} className="board-chip board-chip-strong" onClick={e => { e.preventDefault(); navigate(`/${school.slug}/apply`) }}>📝 {t('Admissions open')}</a> : null}
       </div>
-      {school.paused ? <Alert kind="info">This school account is paused. Please contact the school office.</Alert> : <LoginForm slug={slug} color={school.color} />}
-    </AuthFrame>
+      <div className="board-body">
+        <h2>{board.headline || t('Welcome to {school}', { school: school.name })}</h2>
+        <ul>{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
+      </div>
+      <span className="board-bubble b1" aria-hidden /><span className="board-bubble b2" aria-hidden /><span className="board-bubble b3" aria-hidden />
+    </section>
   )
 }
 

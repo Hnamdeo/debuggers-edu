@@ -13,6 +13,8 @@ import { StaffPage } from './pages/Staff'
 import { SetupPage } from './pages/Setup'
 import { ChildPage } from './pages/Child'
 import { PlatformPage } from './pages/Platform'
+import { AdmissionDetail, AdmissionsPage, ApplyPage, NewAdmission } from './pages/Admissions'
+import { SyllabusPage } from './pages/Syllabus'
 import type { ReactNode } from 'react'
 import { useApi } from './lib/useApi'
 import { get } from './lib/api'
@@ -29,6 +31,10 @@ const SCHOOL_ROUTES: [string, (s: SchoolRef, p: Record<string, string>) => React
   ['students/new', s => <NewStudent school={s} />],
   ['students/import', s => <ImportStudents school={s} />],
   ['students/:id', (s, p) => <StudentProfile school={s} studentId={Number(p.id)} />],
+  ['admissions', s => <AdmissionsPage school={s} />],
+  ['admissions/new', s => <NewAdmission school={s} />],
+  ['admissions/:id', (s, p) => <AdmissionDetail school={s} admissionId={Number(p.id)} />],
+  ['syllabus', s => <SyllabusPage school={s} />],
   ['staff', s => <StaffPage school={s} />],
   ['setup', s => <SetupPage school={s} />],
   ['child/:id', (s, p) => <ChildPage school={s} studentId={Number(p.id)} />],
@@ -52,6 +58,7 @@ export function App() {
   const sub = rest.join('/')
   if (sub === '') return <SchoolLogin slug={slug} />
   if (sub === 'welcome') return <Welcome slug={slug} />
+  if (sub === 'apply') return <ApplyPage slug={slug} />
 
   if (!profile) { navigate(`/${slug}`, true); return null }
   const school = profile.schools.find(s => s.slug === slug)
