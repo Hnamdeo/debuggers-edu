@@ -3,6 +3,7 @@ import { get } from '../lib/api'
 import { useApi } from '../lib/useApi'
 import { t } from '../lib/i18n'
 import type { Guardian, Homework, Mark, SchoolRef, Student } from '../lib/types'
+import { ChildFeesCard } from './Fees'
 import { Alert, Card, Empty, LinkButton, Loading, PageTitle, formatDate, todayIso } from '../ui/kit'
 
 interface Month { month: string; days: { date: string; status: Mark }[]; counts: Record<Mark, number>; presentPercent: number | null }
@@ -29,6 +30,7 @@ export function ChildPage({ school, studentId }: { school: SchoolRef; studentId:
     <div className="stack-lg">
       <PageTitle title={s.name} sub={s.division ?? ''} back={`/${school.slug}/home`} />
       {s.divisionId ? <LinkButton to={`/${school.slug}/syllabus?division=${s.divisionId}`}>📖 {t('Syllabus and lessons')}</LinkButton> : null}
+      <ChildFeesCard school={school} studentId={studentId} />
       <Card className="stack">
         <div className="row">
           <button className="btn btn-ghost" onClick={() => shift(-1)} aria-label="Previous month">‹</button>

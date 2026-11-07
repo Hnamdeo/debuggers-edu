@@ -15,6 +15,7 @@ import { ChildPage } from './pages/Child'
 import { PlatformPage } from './pages/Platform'
 import { AdmissionDetail, AdmissionsPage, ApplyPage, NewAdmission } from './pages/Admissions'
 import { SyllabusPage } from './pages/Syllabus'
+import { FeeAccountPage, FeeReceiptPage, FeeSetupPage, FeesPage } from './pages/Fees'
 import type { ReactNode } from 'react'
 import { useApi } from './lib/useApi'
 import { get } from './lib/api'
@@ -35,6 +36,10 @@ const SCHOOL_ROUTES: [string, (s: SchoolRef, p: Record<string, string>) => React
   ['admissions/new', s => <NewAdmission school={s} />],
   ['admissions/:id', (s, p) => <AdmissionDetail school={s} admissionId={Number(p.id)} />],
   ['syllabus', s => <SyllabusPage school={s} />],
+  ['fees', s => <FeesPage school={s} />],
+  ['fees/setup', s => <FeeSetupPage school={s} />],
+  ['fees/student/:id', (s, p) => <FeeAccountPage school={s} studentId={Number(p.id)} />],
+  ['fees/receipt/:id', (s, p) => <FeeReceiptPage school={s} paymentId={Number(p.id)} />],
   ['staff', s => <StaffPage school={s} />],
   ['setup', s => <SetupPage school={s} />],
   ['child/:id', (s, p) => <ChildPage school={s} studentId={Number(p.id)} />],

@@ -223,6 +223,7 @@ export function StudentProfile({ school, studentId }: { school: SchoolRef; stude
   return (
     <div className="stack">
       <PageTitle title={s.name} sub={`${s.division ?? 'No class'} · Adm. no. ${s.admissionNo}`} back={`/${school.slug}/students`} />
+      {school.roles.some(r => ['admin', 'principal', 'accounts'].includes(r)) ? <LinkButton to={`/${school.slug}/fees/student/${s.id}`}>💰 {t('Fees and receipts')}</LinkButton> : null}
       <Card className="stack">
         <div className="facts">
           <div><span className="muted small">Gender</span><b>{s.gender ?? '—'}</b></div>
