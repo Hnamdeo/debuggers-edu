@@ -56,6 +56,15 @@ check($st === 403, 'migrate needs the deploy key', $st);
 check($st === 200 && count($b['applied']) === 8, 'migrations apply', $b);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
 check($b['applied'] === [], 'migrations run once', $b);
+$tokenFile = dirname(__DIR__) . '/.deploy-token';
+file_put_contents($tokenFile, str_repeat('t', 48) . "\n");
+[$st] = call('POST', '/system/migrate', [], null, [], ['x-deploy-token' => str_repeat('x', 48)]);
+check($st === 403, 'wrong deploy token refused');
+[$st] = call('POST', '/system/migrate', [], null, [], ['x-deploy-token' => str_repeat('t', 48)]);
+check($st === 200 && !is_file($tokenFile), 'deploy token works once and is deleted', $st);
+[$st] = call('POST', '/system/migrate', [], null, [], ['x-deploy-token' => str_repeat('t', 48)]);
+check($st === 403, 'used deploy token refused');
+@unlink($tokenFile);
 check(count(Migrator::statements("-- c\nSELECT 1;\nSELECT 2;\n")) === 2, 'migration splitter');
 
 [$st, $b] = call('POST', '/system/bootstrap', ['name' => 'Team', 'email' => 'team@thinkletots.com', 'password' => 'short'], null, [], $key);

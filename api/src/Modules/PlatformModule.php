@@ -38,9 +38,24 @@ final class PlatformModule implements Module
         if (strlen($key) < 24 || !hash_equals($key, $req->header('x-deploy-key'))) throw HttpError::forbidden();
     }
 
+    /**
+     * Each deploy uploads api/.deploy-token (fresh random text) by FTP and sends the same text,
+     * so migrations run without a key stored in GitHub. The file works once, for 15 minutes.
+     */
+    private function requireDeployToken(Request $req): void
+    {
+        $file = dirname(__DIR__, 2) . '/.deploy-token';
+        $sent = $req->header('x-deploy-token');
+        if ($sent !== '' && is_file($file) && filemtime($file) > time() - 900) {
+            $token = trim((string)file_get_contents($file));
+            if (strlen($token) >= 32 && hash_equals($token, $sent)) { @unlink($file); return; }
+        }
+        $this->requireDeployKey($req);
+    }
+
     private function migrate(Request $req): array
     {
-        $this->requireDeployKey($req);
+        $this->requireDeployToken($req);
         return ['applied' => (new Migrator($this->s->db, dirname(__DIR__, 2) . '/migrations'))->run()];
     }
 

@@ -1,5 +1,8 @@
 # Every request under /api goes to index.php; source files are never served directly.
 Options -Indexes
+<Files ".deploy-token">
+  Require all denied
+</Files>
 RewriteEngine On
 RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteCond %{REQUEST_URI} !/index\.php$
