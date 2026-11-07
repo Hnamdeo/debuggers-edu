@@ -1,0 +1,124 @@
+# Tests the school app and uploads it to Hostinger over FTP.
+#   push to dev (school/ changed) -> https://school.thinkletots.com
+# There is no test copy yet (decided 7 Nov 2026); a schooldev site is added before selling to schools.
+# Pull requests run the tests only.
+#
+# Needs (in addition to the game's FTP_SERVER, FTP_USERNAME and FTP_PASSWORD secrets):
+#   secret   SCHOOL_DEPLOY_KEY  the same long random text as 'deploy_key' in the server config;
+#                               used after upload to run new database migrations
+#   variable SCHOOL_FTP_DIR     optional, defaults to school/ (the subdomain's folder)
+#   variable SCHOOL_URL         optional, defaults to https://school.thinkletots.com
+name: School app
+
+on:
+  push:
+    branches: [dev]
+    paths: ['school/**', '.github/workflows/deploy-school.yml']
+  pull_request:
+    paths: ['school/**', '.github/workflows/deploy-school.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: school-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: school_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql
+          coverage: none
+      - name: Check PHP syntax
+        run: find school/api -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: API tests (real database)
+        run: php school/api/tests/run.php
+        env:
+          SCHOOL_TEST_DB: mysql://root:root@127.0.0.1:3306/school_test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: school/web/package-lock.json
+      - name: Web app tests and build
+        working-directory: school/web
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: school-web
+          path: school/web/dist
+          retention-days: 3
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref_name == 'dev'
+    runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      SCHOOL_DEPLOY_KEY: ${{ secrets.SCHOOL_DEPLOY_KEY }}
+      SCHOOL_URL: ${{ vars.SCHOOL_URL || 'https://school.thinkletots.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: school-web
+          path: out
+      - name: Put the API next to the app (no tests, no samples)
+        run: |
+          mkdir -p out/api
+          cp -r school/api/index.php school/api/.htaccess school/api/src school/api/migrations school/api/bin out/api/
+          ls -la out out/api
+      - name: Upload to Hostinger
+        if: env.FTP_SERVER != ''
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ vars.SCHOOL_FTP_DIR || 'school/' }}
+        run: |
+          sudo apt-get update -qq || true
+          sudo apt-get install -y -qq lftp > /dev/null
+          # The API goes first, then the app; index.html last so visitors never load a page
+          # that points at files not uploaded yet.
+          lftp --env-password -u "$FTP_USERNAME" "$FTP_SERVER" <<LFTP
+          set ftp:ssl-allow yes
+          set ssl:verify-certificate no
+          set ftp:passive-mode yes
+          set net:timeout 30
+          set net:max-retries 8
+          set net:reconnect-interval-base 5
+          set net:reconnect-interval-max 30
+          mirror --reverse --verbose --parallel=2 out/api/ ${FTP_DIR}api/
+          mirror --reverse --verbose --parallel=2 --exclude-glob index.html --exclude ^api/ out/ $FTP_DIR
+          put -O $FTP_DIR out/index.html
+          bye
+          LFTP
+      - name: Run database migrations
+        if: env.FTP_SERVER != '' && env.SCHOOL_DEPLOY_KEY != ''
+        run: |
+          for i in 1 2 3 4 5; do
+            out=$(curl -sS -X POST -H "X-Deploy-Key: $SCHOOL_DEPLOY_KEY" "$SCHOOL_URL/api/system/migrate" -w '\n%{http_code}') && code=$(echo "$out" | tail -1)
+            echo "$out"
+            [ "$code" = "200" ] && exit 0
+            sleep $((i * 5))
+          done
+          echo "::error::Migrations did not run. Check the server config file and SCHOOL_DEPLOY_KEY."
+          exit 1
+      - name: Health check
+        if: env.FTP_SERVER != ''
+        run: curl -fsS "$SCHOOL_URL/api/health"

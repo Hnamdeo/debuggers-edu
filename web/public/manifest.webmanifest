@@ -1,0 +1,9 @@
+{
+  "name": "Thinkle Tots School",
+  "short_name": "School",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5FF",
+  "theme_color": "#6C4CF1",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

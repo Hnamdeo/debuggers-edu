@@ -1,0 +1,6 @@
+# Every request under /api goes to index.php; source files are never served directly.
+Options -Indexes
+RewriteEngine On
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteCond %{REQUEST_URI} !/index\.php$
+RewriteRule ^ index.php [L,QSA]
