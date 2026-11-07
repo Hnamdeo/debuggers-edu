@@ -53,7 +53,7 @@ export interface Homework {
 
 export interface Notice { id: number; title: string; body: string | null; audience: string; division: string | null; author: string | null; createdAt: string; mine: boolean }
 
-export type Action = 'children' | 'attendance' | 'homework' | 'notice' | 'admissions' | 'fees' | 'payroll' | 'add-student' | 'syllabus' | 'students' | 'staff' | 'setup'
+export type Action = 'children' | 'attendance' | 'homework' | 'notice' | 'admissions' | 'fees' | 'payroll' | 'exams' | 'add-student' | 'syllabus' | 'students' | 'staff' | 'setup'
 
 export interface Home {
   school: School; roles: Role[]; actions: Action[]; today: string
@@ -117,4 +117,23 @@ export interface PayrollRunRow { id: number; month: string; status: 'draft' | 'f
 export interface PayrollRun {
   run: { id: number; month: string; status: 'draft' | 'final'; finalisedAt: string | null }
   slips: Payslip[]; totals: { gross: number; deductions: number; net: number; paid: number }
+}
+
+export interface ExamRef { id: number; name: string; startsOn: string | null; published: boolean }
+export interface ExamDetail {
+  exam: ExamRef
+  classes: { gradeId: number; grade: string; papers: { id: number; subjectId: number; subject: string; maxMarks: number }[]; sections: { divisionId: number; label: string; students: number; filled: number; needed: number }[] }[]
+}
+export interface MarksSheet {
+  exam: ExamRef; paper: { id: number; subject: string; maxMarks: number }; division: { id: number; label: string }
+  students: { studentId: number; name: string; rollNo: number | null; marks: number | null; absent: boolean }[]
+}
+export interface SubjectResult { subject: string; maxMarks: number; marks: number | null; absent: boolean; grade: string | null }
+export interface ResultRow {
+  studentId: number; name: string; admissionNo: string; rollNo: number | null; subjects: SubjectResult[]
+  total: number; maxTotal: number; percent: number | null; grade: string | null; result: 'pass' | 'needs_support' | 'pending'; remark: string | null; rank: number | null
+}
+export interface ReportCard extends ResultRow {
+  exam: ExamRef; year: string; school: { name: string; city: string | null; board: string | null; logoUrl: string | null }
+  class: string; classSize: number; attendance: { present: number; days: number }; scale: { from: number; grade: string }[]
 }
