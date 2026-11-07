@@ -82,7 +82,7 @@ jobs:
       - name: Put the API next to the app (no tests, no samples)
         run: |
           mkdir -p out/api
-          cp -r school/api/index.php school/api/.htaccess school/api/src school/api/migrations school/api/bin out/api/
+          cp -r school/api/index.php school/api/.htaccess school/api/src school/api/migrations school/api/seed school/api/bin out/api/
           # One-time token for this deploy's migrations (no key needs to be stored in GitHub)
           token=$(openssl rand -hex 24)
           echo "::add-mask::$token"

@@ -56,7 +56,48 @@ final class PlatformModule implements Module
     private function migrate(Request $req): array
     {
         $this->requireDeployToken($req);
-        return ['applied' => (new Migrator($this->s->db, dirname(__DIR__, 2) . '/migrations'))->run()];
+        $applied = (new Migrator($this->s->db, dirname(__DIR__, 2) . '/migrations'))->run();
+        return ['applied' => $applied, 'schoolsAdded' => $this->addStarterSchools($req)];
+    }
+
+    /**
+     * Schools listed in seed/starter-schools.json are created on deploy if their link name is new,
+     * so the first schools exist before anyone signs in. Existing schools are never changed.
+     */
+    private function addStarterSchools(Request $req): array
+    {
+        $file = (string)Config::get('starter_schools', dirname(__DIR__, 2) . '/seed/starter-schools.json');
+        if ($file === '' || !is_file($file)) return [];
+        $list = json_decode((string)file_get_contents($file), true);
+        if (!is_array($list)) return [];
+        $added = [];
+        foreach ($list as $s) {
+            $slug = strtolower((string)($s['slug'] ?? ''));
+            if (!preg_match('/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/', $slug) || empty($s['name'])) continue;
+            if ($this->s->db->value('SELECT id FROM schools WHERE slug = ?', [$slug])) continue;
+            $this->insertSchool([
+                'slug' => $slug,
+                'name' => (string)$s['name'],
+                'board' => in_array($s['board'] ?? '', self::BOARDS, true) ? $s['board'] : 'CBSE',
+                'state' => $s['state'] ?? null,
+                'city' => $s['city'] ?? null,
+                'phone' => $s['phone'] ?? null,
+                'color' => preg_match('/^#[0-9a-fA-F]{6}$/', (string)($s['color'] ?? '')) ? $s['color'] : '#6C4CF1',
+            ], in_array($s['template'] ?? '', self::TEMPLATES, true) ? $s['template'] : 'k10', $req);
+            $added[] = $slug;
+        }
+        return $added;
+    }
+
+    private function insertSchool(array $row, string $template, Request $req): int
+    {
+        $db = $this->s->db;
+        return $db->tx(function () use ($db, $row, $template, $req) {
+            $id = $db->insert('schools', $row);
+            // The Setup module listens and creates the year, classes and subjects from the template
+            $this->s->events->emit('school.created', ['school_id' => $id, 'id' => $id, 'board' => $row['board'], 'template' => $template], $req);
+            return $id;
+        });
     }
 
     /** Creates the first Thinkle Tots team account. Works only while there is none. */
@@ -114,14 +155,8 @@ final class PlatformModule implements Module
             'color' => $color,
         ];
         $template = $in->oneOf('template', self::TEMPLATES, false) ?? 'k10';
-        $db = $this->s->db;
-        $id = $db->tx(function () use ($db, $row, $template, $req) {
-            $id = $db->insert('schools', $row);
-            // The Setup module listens and creates the year, classes and subjects from the template
-            $this->s->events->emit('school.created', ['school_id' => $id, 'id' => $id, 'board' => $row['board'], 'template' => $template], $req);
-            return $id;
-        });
-        return Response::created(['school' => self::schoolOut($db->one('SELECT * FROM schools WHERE id = ?', [$id]))]);
+        $id = $this->insertSchool($row, $template, $req);
+        return Response::created(['school' => self::schoolOut($this->s->db->one('SELECT * FROM schools WHERE id = ?', [$id]))]);
     }
 
     private function updateSchool(Request $req): array

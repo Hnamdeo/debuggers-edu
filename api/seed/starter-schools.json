@@ -1,0 +1,5 @@
+[
+  {"slug": "bharatmata", "name": "Bharat Mata School", "board": "CGBSE", "state": "Chhattisgarh", "city": "Raipur", "template": "k12", "color": "#E8590C"},
+  {"slug": "stjoseph-bhopal", "name": "St. Joseph's Co-ed School", "board": "CBSE", "state": "Madhya Pradesh", "city": "Bhopal", "phone": "07552565434", "template": "k12", "color": "#1C4E9C"},
+  {"slug": "gurukul-janjgir", "name": "Gurukul International School", "board": "CBSE", "state": "Chhattisgarh", "city": "Janjgir", "template": "k12", "color": "#2B8A3E"}
+]
