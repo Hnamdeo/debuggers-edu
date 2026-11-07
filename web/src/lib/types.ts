@@ -53,7 +53,7 @@ export interface Homework {
 
 export interface Notice { id: number; title: string; body: string | null; audience: string; division: string | null; author: string | null; createdAt: string; mine: boolean }
 
-export type Action = 'children' | 'attendance' | 'homework' | 'notice' | 'admissions' | 'add-student' | 'syllabus' | 'students' | 'staff' | 'setup'
+export type Action = 'children' | 'attendance' | 'homework' | 'notice' | 'admissions' | 'fees' | 'add-student' | 'syllabus' | 'students' | 'staff' | 'setup'
 
 export interface Home {
   school: School; roles: Role[]; actions: Action[]; today: string
@@ -88,3 +88,18 @@ export interface Admission {
 export interface Lesson { id: number; unitId: number; title: string; details: string | null; plannedOn: string | null; lessonCode: string | null; linkUrl: string | null; doneOn: string | null }
 export interface Unit { id: number; title: string; month: string | null; lessons: Lesson[] }
 export interface Syllabus { units: Unit[]; total: number; done: number }
+
+export interface FeeItem { id: number; gradeId: number; head: string; amount: number; dueOn: string }
+export interface FeeStructure { yearId: number; heads: string[]; grades: { id: number; name: string; items: FeeItem[]; total: number }[] }
+export interface FeeBalance { total: number; paid: number; balance: number; overdue: number }
+export interface FeeStudentRow extends FeeBalance { studentId: number; name: string; admissionNo: string; rollNo: number | null; class: string }
+export interface FeeSummary extends FeeBalance { today: number; month: number; hasStructure: boolean; overdueCount: number }
+export interface FeePayment {
+  id: number; receiptNo: string; amount: number; mode: 'cash' | 'upi' | 'cheque' | 'bank' | 'card' | 'online'
+  reference: string | null; paidOn: string; note: string | null; receivedBy: string | null; cancelled: boolean; cancelReason: string | null
+}
+export interface FeeLine { kind: 'fee' | 'adjustment'; id: number; label: string; amount: number; dueOn: string; paid?: number; status: 'paid' | 'part' | 'overdue' | 'upcoming' | 'concession' }
+export interface FeeAccount extends FeeBalance {
+  student: { id: number; name: string; admissionNo: string; class: string | null }
+  yearId: number; lines: FeeLine[]; payments: FeePayment[]; next: FeeLine | null
+}
