@@ -22,10 +22,11 @@ sign-in page in that school's logo and colour.
 | Admissions | Online form for parents at `/<school>/apply` (school opens or closes it); office adds walk-ins; enquiry → registered (fee, receipt, call-back date, notes) → admitted into a section, which creates the student and both parents' sign-up links |
 | Syllabus | Per class and subject: chapters with lessons (paste one per line, with a lesson code or video link), day-wise plan that skips Sundays and holidays, teachers tick lessons as taught and give a lesson as homework in one tap, parents see progress |
 | Fees | Class fees set once for many classes (one-time, 2/4 parts or monthly), take payment (cash, UPI, cheque, bank, card) with numbered receipts to print or send on WhatsApp, concessions and extra charges per child, "due now" list, today's collection by mode, cancel receipts with a reason (admin/principal), parents see their child's fees |
+| Salary (payroll) | Monthly salary per employee (basic, allowances, fixed deductions, PF 12% capped at ₹1,800), salary sheet per month with unpaid days, bonus and advance recovery, finalise, mark paid (bank/cash/UPI/cheque), printable payslips, staff see their own payslips |
 | Sign-in page | School's own banner on the left (headline, short lines, optional photo, office phone, "Admissions open"), sign-in on the right; stacked on phones |
 | Language | English and Hindi switch on every screen |
 
-Next: payroll.
+Next: report cards, staff leave, LMS lessons.
 
 ## How it is built
 

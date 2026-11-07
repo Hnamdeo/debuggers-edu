@@ -20,6 +20,7 @@ final class HomeModule implements Module
         'notice' => ['notice', 'circular', 'announcement', 'message', 'soochna', 'suchna', 'सूचना', 'नोटिस', 'संदेश'],
         'admissions' => ['admission', 'admissions', 'enquiry', 'inquiry', 'apply', 'application', 'pravesh', 'dakhila', 'प्रवेश', 'दाखिला', 'आवेदन', 'पूछताछ'],
         'fees' => ['fee', 'fees', 'payment', 'receipt', 'dues', 'balance', 'collect', 'shulk', 'fees baki', 'फीस', 'शुल्क', 'रसीद', 'बकाया', 'भुगतान'],
+        'payroll' => ['salary', 'salaries', 'payroll', 'payslip', 'pay slip', 'wages', 'tankhwah', 'vetan', 'वेतन', 'तनख्वाह', 'सैलरी', 'पगार'],
         'add-student' => ['new student', 'add student', 'add child', 'enrol', 'नया छात्र'],
         'syllabus' => ['syllabus', 'lesson plan', 'chapter', 'lesson', 'curriculum', 'pathyakram', 'पाठ्यक्रम', 'सिलेबस', 'पाठ', 'अध्याय'],
         'students' => ['student', 'students', 'children', 'child', 'kids', 'chhatra', 'छात्र', 'बच्चे', 'विद्यार्थी'],
@@ -49,6 +50,7 @@ final class HomeModule implements Module
         if ($t->can('notices.send_class')) $a[] = 'notice';
         if ($t->can('admissions.view')) $a[] = 'admissions';
         if ($t->can('fees.collect')) $a[] = 'fees';
+        if ($t->can('payroll.manage')) $a[] = 'payroll';
         if ($t->can('students.manage')) $a[] = 'add-student';
         if ($t->can('syllabus.teach')) $a[] = 'syllabus';
         if ($t->can('students.view')) $a[] = 'students';
