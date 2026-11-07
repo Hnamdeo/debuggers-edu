@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace School\Modules;
 
-use School\Core\{Access, Db, Events, HttpError, Module, Request, Response, Roles, Router, Services};
+use School\Core\{Access, Db, Events, HttpError, Input, Module, Request, Response, Roles, Router, Services};
 
 /** Academic years, classes (grades), sections (divisions), subjects and the school's own look. */
 final class SetupModule implements Module
@@ -152,11 +152,30 @@ final class SetupModule implements Module
         if (isset($row['color']) && !preg_match('/^#[0-9a-fA-F]{6}$/', $row['color'])) throw HttpError::badRequest('Colour must look like #6C4CF1.', ['field' => 'color']);
         if (isset($row['logo_url']) && !preg_match('#^https://#', $row['logo_url'])) throw HttpError::badRequest('Logo link must start with https://', ['field' => 'logoUrl']);
         $id = $req->tenant->schoolId;
+        $settings = PlatformModule::settings($req->tenant->school);
+        $changed = false;
+        if ($in->has('admissionsOpen')) { $settings['admissionsOpen'] = $in->bool('admissionsOpen'); $changed = true; }
+        if (array_key_exists('loginBoard', $req->body)) { $settings['loginBoard'] = $this->loginBoard($req->body['loginBoard']); $changed = true; }
+        if ($changed) $row['settings'] = json_encode($settings, JSON_UNESCAPED_UNICODE);
         if ($row) {
             $this->s->db->exec('UPDATE schools SET ' . implode(', ', array_map(fn($c) => "$c = ?", array_keys($row))) . ' WHERE id = ?', [...array_values($row), $id]);
             $this->s->events->emit('school.settings_changed', ['id' => $id] + $row, $req);
         }
         return ['school' => PlatformModule::schoolOut($this->s->db->one('SELECT * FROM schools WHERE id = ?', [$id]))];
+    }
+
+    /** The left panel on the school's sign-in page: { imageUrl?, headline?, lines?: [up to 4] }, or null to use the default. */
+    private function loginBoard(mixed $raw): ?array
+    {
+        if ($raw === null) return null;
+        if (!is_array($raw)) throw HttpError::badRequest('Login page details are not valid.', ['field' => 'loginBoard']);
+        $in = new Input($raw);
+        $image = $in->str('imageUrl', 500, false);
+        if ($image && !preg_match('#^https://#', $image)) throw HttpError::badRequest('Picture link must start with https://', ['field' => 'imageUrl']);
+        $lines = array_values(array_filter(array_map(fn($l) => is_string($l) ? trim(mb_substr($l, 0, 120)) : '', $in->list('lines')), fn($l) => $l !== ''));
+        if (count($lines) > 4) throw HttpError::badRequest('Please keep to 4 short lines.', ['field' => 'lines']);
+        $board = array_filter(['imageUrl' => $image, 'headline' => $in->str('headline', 100, false), 'lines' => $lines ?: null]);
+        return $board ?: null;
     }
 
     private function addYear(Request $req): Response

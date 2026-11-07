@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace School\Modules;
 
-use School\Core\{Access, Auth, Events, HttpError, Input, Module, Request, Response, Roles, Router, Services, Users};
+use School\Core\{Access, Events, HttpError, Input, Module, Request, Response, Roles, Router, Services, Students, Users};
 
 /** Admissions and enrolment, parents, and staff (teachers and other employees). */
 final class PeopleModule implements Module
@@ -13,6 +13,8 @@ final class PeopleModule implements Module
     public function __construct(private readonly Services $s) {}
 
     public function name(): string { return 'people'; }
+
+    private function students(): Students { return new Students($this->s); }
 
     public function permissions(): array
     {
@@ -102,32 +104,18 @@ final class PeopleModule implements Module
         return $row;
     }
 
-    /** Put a student in a section for the current year (or move them). */
-    private function enrol(int $schoolId, int $studentId, int $divisionId, ?int $rollNo): void
-    {
-        $db = $this->s->db;
-        $access = new Access($db);
-        $division = $access->division($schoolId, $divisionId);
-        $db->exec(
-            'INSERT INTO enrolments (school_id, academic_year_id, student_id, division_id, roll_no) VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE division_id = VALUES(division_id), roll_no = VALUES(roll_no)',
-            [$schoolId, $division['academic_year_id'], $studentId, $divisionId, $rollNo],
-        );
-    }
-
     private function addStudent(Request $req): Response
     {
         $schoolId = $req->tenant->schoolId;
         $in = $req->input();
         $db = $this->s->db;
         $result = $db->tx(function () use ($db, $schoolId, $in, $req) {
-            $row = $this->studentRow($in) + ['school_id' => $schoolId];
-            $row['admitted_on'] ??= date('Y-m-d');
-            $id = $db->insert('students', $row);
-            if ($in->has('divisionId')) $this->enrol($schoolId, $id, (int)$in->int('divisionId'), $in->int('rollNo', false, 1));
+            $row = $this->studentRow($in);
+            $id = $this->students()->create($schoolId, $row);
+            if ($in->has('divisionId')) $this->students()->enrol($schoolId, $id, (int)$in->int('divisionId'), $in->int('rollNo', false, 1));
             $link = null;
             if ($in->has('parentName') && ($in->has('parentPhone') || $in->has('parentEmail'))) {
-                $link = $this->linkGuardian($req, $id, (string)$in->str('parentName', 120), $in->phone('parentPhone', false), $in->email('parentEmail', false), $in->oneOf('relation', ['mother', 'father', 'guardian'], false) ?? 'guardian');
+                $link = $this->students()->linkGuardian($req, $id, (string)$in->str('parentName', 120), $in->phone('parentPhone', false), $in->email('parentEmail', false), $in->oneOf('relation', ['mother', 'father', 'guardian'], false) ?? 'guardian');
             }
             $this->s->events->emit('student.admitted', ['id' => $id, 'admission_no' => $row['admission_no']], $req);
             return ['id' => $id, 'inviteLink' => $link];
@@ -158,17 +146,16 @@ final class PeopleModule implements Module
             try {
                 $in = new Input(is_array($raw) ? $raw : []);
                 $db->tx(function () use ($db, $in, $schoolId, $divisions, $req) {
-                    $row = $this->studentRow($in) + ['school_id' => $schoolId];
-                    $id = $db->insert('students', $row);
+                    $id = $this->students()->create($schoolId, $this->studentRow($in));
                     $grade = strtolower((string)$in->str('class', 40, false));
                     if ($grade !== '') {
                         $grade = preg_match('/^\d+$/', $grade) ? "class $grade" : $grade;
                         $key = $grade . '|' . strtoupper($in->str('section', 20, false) ?? 'A');
                         $divisionId = $divisions[$key] ?? throw HttpError::badRequest('Class/section "' . $in->str('class', 40) . ' ' . ($in->str('section', 20, false) ?? 'A') . '" not found in setup.');
-                        $this->enrol($schoolId, $id, $divisionId, $in->int('rollNo', false, 1));
+                        $this->students()->enrol($schoolId, $id, $divisionId, $in->int('rollNo', false, 1));
                     }
                     if ($in->has('parentName') && ($in->has('parentPhone') || $in->has('parentEmail'))) {
-                        $this->linkGuardian($req, $id, (string)$in->str('parentName', 120), $in->phone('parentPhone', false), $in->email('parentEmail', false), $in->oneOf('relation', ['mother', 'father', 'guardian'], false) ?? 'guardian');
+                        $this->students()->linkGuardian($req, $id, (string)$in->str('parentName', 120), $in->phone('parentPhone', false), $in->email('parentEmail', false), $in->oneOf('relation', ['mother', 'father', 'guardian'], false) ?? 'guardian');
                     }
                 });
                 $added++;
@@ -219,25 +206,10 @@ final class PeopleModule implements Module
         $row = $this->studentRow($in, true);
         $this->s->db->tx(function () use ($schoolId, $id, $row, $in, $req) {
             $this->s->db->update('students', $schoolId, $id, $row);
-            if ($in->has('divisionId')) $this->enrol($schoolId, $id, (int)$in->int('divisionId'), $in->int('rollNo', false, 1));
+            if ($in->has('divisionId')) $this->students()->enrol($schoolId, $id, (int)$in->int('divisionId'), $in->int('rollNo', false, 1));
             $this->s->events->emit('student.updated', ['id' => $id] + $row + ($in->has('divisionId') ? ['division_id' => $in->int('divisionId')] : []), $req);
         });
         return $this->getStudent($req);
-    }
-
-    /** Adds a parent to a child; returns a one-time sign-up link to send on WhatsApp (null if they already have a password). */
-    private function linkGuardian(Request $req, int $studentId, string $name, ?string $phone, ?string $email, string $relation): ?string
-    {
-        $schoolId = $req->tenant->schoolId;
-        $users = new Users($this->s->db);
-        $userId = $users->findOrCreate($name, $phone, $email);
-        $users->addRole($schoolId, $userId, Roles::PARENT);
-        $this->s->db->exec(
-            'INSERT INTO student_guardians (school_id, student_id, user_id, relation) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE relation = VALUES(relation)',
-            [$schoolId, $studentId, $userId, $relation],
-        );
-        if ($users->hasPassword($userId)) return null;
-        return Auth::inviteLink($this->s->auth->createInvite($userId, $schoolId, $req->userId()), $req->tenant->school['slug']);
     }
 
     private function addGuardian(Request $req): Response
@@ -245,7 +217,7 @@ final class PeopleModule implements Module
         $studentId = $req->intParam('studentId');
         (new Access($this->s->db))->requireStudent($req, $studentId);
         $in = $req->input();
-        $link = $this->s->db->tx(fn() => $this->linkGuardian(
+        $link = $this->s->db->tx(fn() => $this->students()->linkGuardian(
             $req, $studentId, (string)$in->str('name', 120), $in->phone('phone', false), $in->email('email', false),
             $in->oneOf('relation', ['mother', 'father', 'guardian'], false) ?? 'guardian',
         ));
@@ -260,13 +232,7 @@ final class PeopleModule implements Module
         $userId = $req->intParam('userId');
         $this->s->db->one('SELECT id FROM student_guardians WHERE school_id = ? AND student_id = ? AND user_id = ?', [$schoolId, $req->intParam('studentId'), $userId])
             ?? throw HttpError::notFound();
-        return ['inviteLink' => $this->freshLink($req, $userId)];
-    }
-
-    private function freshLink(Request $req, int $userId): ?string
-    {
-        if ((new Users($this->s->db))->hasPassword($userId)) return null;
-        return Auth::inviteLink($this->s->auth->createInvite($userId, $req->tenant->schoolId, $req->userId()), $req->tenant->school['slug']);
+        return ['inviteLink' => $this->students()->inviteLink($req, $userId)];
     }
 
     private function myChildren(Request $req): array
@@ -331,7 +297,7 @@ final class PeopleModule implements Module
                 'department' => $in->str('department', 80, false), 'role' => $role, 'joined_on' => $in->date('joinedOn', false),
             ]);
             $this->s->events->emit('staff.added', ['id' => $id, 'role' => $role], $req);
-            return ['id' => $id, 'inviteLink' => $userId ? $this->freshLink($req, $userId) : null];
+            return ['id' => $id, 'inviteLink' => $userId ? $this->students()->inviteLink($req, $userId) : null];
         });
         return Response::created($result);
     }
@@ -371,6 +337,6 @@ final class PeopleModule implements Module
     {
         $staff = $this->s->db->one('SELECT user_id FROM staff WHERE school_id = ? AND id = ?', [$req->tenant->schoolId, $req->intParam('staffId')]) ?? throw HttpError::notFound();
         if (!$staff['user_id']) throw HttpError::badRequest('Add a mobile number or email first.');
-        return ['inviteLink' => $this->freshLink($req, (int)$staff['user_id'])];
+        return ['inviteLink' => $this->students()->inviteLink($req, (int)$staff['user_id'])];
     }
 }

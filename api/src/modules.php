@@ -11,5 +11,7 @@ return [
     School\Modules\AttendanceModule::class,
     School\Modules\HomeworkModule::class,
     School\Modules\NoticesModule::class,
+    School\Modules\AdmissionsModule::class,
+    School\Modules\SyllabusModule::class,
     School\Modules\HomeModule::class,
 ];

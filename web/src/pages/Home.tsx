@@ -13,7 +13,9 @@ const ACTION_UI: Record<Action, { icon: string; label: string }> = {
   attendance: { icon: '✅', label: 'Mark attendance' },
   homework: { icon: '📚', label: 'Give homework' },
   notice: { icon: '📢', label: 'Send a notice' },
+  admissions: { icon: '📝', label: 'Admissions' },
   'add-student': { icon: '➕', label: 'Add a student' },
+  syllabus: { icon: '📖', label: 'Syllabus' },
   students: { icon: '🎒', label: 'Students' },
   staff: { icon: '🧑‍🏫', label: 'Staff' },
   setup: { icon: '⚙️', label: 'School setup' },
@@ -109,6 +111,15 @@ function HomeCards({ data, school }: { data: HomeData; school: SchoolRef }) {
           <Stat value={data.school_stats.classesNotMarked} label={t('Classes not marked')} tone={data.school_stats.classesNotMarked ? 'warn' : 'ok'}
             onClick={() => navigate(`/${school.slug}/attendance`)} />
         </div>
+      ) : null}
+
+      {data.school_stats?.openAdmissions && data.actions.includes('admissions') ? (
+        <Card className="row" onClick={() => navigate(`/${school.slug}/admissions`)}>
+          <div className="row-start"><span className="big-emoji" aria-hidden>📝</span>
+            <div><b>{t('{n} admission forms waiting', { n: data.school_stats.openAdmissions })}</b><div className="muted small">{t('Call parents, register and admit')}</div></div>
+          </div>
+          <span aria-hidden>›</span>
+        </Card>
       ) : null}
 
       {data.my_classes?.length ? (

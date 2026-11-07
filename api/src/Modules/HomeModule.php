@@ -18,7 +18,9 @@ final class HomeModule implements Module
         'attendance' => ['attendance', 'present', 'absent', 'haziri', 'hajiri', 'hazri', 'हाज़िरी', 'हाजिरी', 'उपस्थिति', 'अनुपस्थित'],
         'homework' => ['homework', 'home work', 'worksheet', 'revision', 'grihkarya', 'गृहकार्य', 'होमवर्क', 'वर्कशीट'],
         'notice' => ['notice', 'circular', 'announcement', 'message', 'soochna', 'suchna', 'सूचना', 'नोटिस', 'संदेश'],
-        'add-student' => ['admission', 'new student', 'add student', 'add child', 'enrol', 'pravesh', 'प्रवेश', 'नया छात्र', 'दाखिला'],
+        'admissions' => ['admission', 'admissions', 'enquiry', 'inquiry', 'apply', 'application', 'pravesh', 'dakhila', 'प्रवेश', 'दाखिला', 'आवेदन', 'पूछताछ'],
+        'add-student' => ['new student', 'add student', 'add child', 'enrol', 'नया छात्र'],
+        'syllabus' => ['syllabus', 'lesson plan', 'chapter', 'lesson', 'curriculum', 'pathyakram', 'पाठ्यक्रम', 'सिलेबस', 'पाठ', 'अध्याय'],
         'students' => ['student', 'students', 'children', 'child', 'kids', 'chhatra', 'छात्र', 'बच्चे', 'विद्यार्थी'],
         'staff' => ['staff', 'teacher', 'teachers', 'employee', 'shikshak', 'शिक्षक', 'कर्मचारी', 'स्टाफ'],
         'setup' => ['setup', 'class', 'section', 'subject', 'year', 'logo', 'कक्षा', 'विषय', 'सेटअप'],
@@ -44,7 +46,9 @@ final class HomeModule implements Module
         if ($t->can('attendance.mark')) $a[] = 'attendance';
         if ($t->can('homework.give')) $a[] = 'homework';
         if ($t->can('notices.send_class')) $a[] = 'notice';
+        if ($t->can('admissions.view')) $a[] = 'admissions';
         if ($t->can('students.manage')) $a[] = 'add-student';
+        if ($t->can('syllabus.teach')) $a[] = 'syllabus';
         if ($t->can('students.view')) $a[] = 'students';
         if ($t->can('staff.view')) $a[] = 'staff';
         if ($t->can('setup.manage')) $a[] = 'setup';
@@ -75,6 +79,7 @@ final class HomeModule implements Module
                     [$t->schoolId, $yearId, $today],
                 ),
             ];
+            $out['school_stats']['openAdmissions'] = (int)$db->value('SELECT COUNT(*) FROM admissions WHERE school_id = ? AND status IN ("enquiry","registered")', [$t->schoolId]);
             $out['setup_needed'] = $out['school_stats']['students'] === 0;
         }
 

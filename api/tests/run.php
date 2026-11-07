@@ -53,7 +53,7 @@ $key = ['x-deploy-key' => str_repeat('k', 32)];
 [$st, $b] = call('POST', '/system/migrate', [], null, [], ['x-deploy-key' => 'wrong']);
 check($st === 403, 'migrate needs the deploy key', $st);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
-check($st === 200 && count($b['applied']) === 6, 'migrations apply', $b);
+check($st === 200 && count($b['applied']) === 8, 'migrations apply', $b);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
 check($b['applied'] === [], 'migrations run once', $b);
 check(count(Migrator::statements("-- c\nSELECT 1;\nSELECT 2;\n")) === 2, 'migration splitter');
@@ -223,6 +223,85 @@ check($b['action'] === 'attendance', 'assistant understands Hindi', $b);
 check($b['action'] === 'add-student', 'assistant picks longest phrase', $b);
 [, $b] = call('POST', "/schools/$s1/assistant", ['text' => 'add student'], $teacher);
 check($b['action'] === 'students', 'assistant only offers allowed actions', $b);
+
+// --- admissions
+[$st] = call('POST', '/public/schools/bharatmata/admissions', ['firstName' => 'Riya', 'fatherPhone' => '9000000010']);
+check($st === 403, 'online admission closed by default', $st);
+[$st, $b] = call('PATCH', "/schools/$s1/settings", ['admissionsOpen' => true, 'loginBoard' => ['headline' => 'Admissions open 2027-28', 'lines' => ['Smart classes', '', 'Bus service'], 'imageUrl' => 'https://example.com/banner.jpg']], $principal);
+check($st === 200 && $b['school']['admissionsOpen'] === true && $b['school']['loginBoard']['lines'] === ['Smart classes', 'Bus service'], 'school opens admissions + login board', $b['school'] ?? $b);
+[$st] = call('PATCH', "/schools/$s1/settings", ['loginBoard' => ['imageUrl' => 'http://bad']], $principal);
+check($st === 400, 'login picture must be https');
+[$st, $b] = call('GET', '/public/schools/bharatmata');
+check($b['admissionsOpen'] === true && $b['loginBoard']['headline'] === 'Admissions open 2027-28', 'login page gets board', $b);
+[$st, $b] = call('GET', '/public/schools/bharatmata/admission-form');
+check($b['open'] && count($b['grades']) === 8 && count($b['years']) === 2, 'public admission form', $b);
+$nurseryId = $b['grades'][0]['id'];
+[$st] = call('POST', '/public/schools/bharatmata/admissions', ['firstName' => 'Riya', 'gradeId' => $nurseryId]);
+check($st === 400, 'online form needs a parent mobile', $st);
+[$st, $b] = call('POST', '/public/schools/bharatmata/admissions', [
+    'firstName' => 'Riya', 'lastName' => 'Sahu', 'gender' => 'girl', 'dob' => '2023-05-10', 'gradeId' => $nurseryId, 'academicYear' => '2027-28',
+    'fatherName' => 'Mohan Sahu', 'fatherPhone' => '+91 90000 00010', 'motherName' => 'Sita Sahu', 'motherPhone' => '9000000011',
+    'address' => 'Shankar Nagar, Raipur', 'bloodGroup' => 'B+', 'category' => 'OBC', 'transport' => 'yes',
+], null, [], ['x-test-ip' => '5.5.5.5']);
+check($st === 201 && str_starts_with((string)$b['applicationNo'], 'ADM-'), 'parent applies online', $b);
+[$st, $b] = call('POST', '/public/schools/bharatmata/admissions', ['firstName' => 'Bot', 'fatherPhone' => '9000000012', 'website' => 'spam']);
+check($st === 201 && $b['applicationNo'] === 'ok', 'bot form quietly ignored', $b);
+[$st, $b] = call('POST', "/schools/$s1/admissions", ['firstName' => 'Kunal', 'gradeId' => $nurseryId, 'motherPhone' => '9000000013', 'registrationFee' => 500, 'receiptNo' => 'R-1'], $principal);
+check($st === 201 && $b['admission']['source'] === 'office' && $b['admission']['registrationFee'] === 500, 'office adds walk-in', $b);
+[$st, $b] = call('GET', "/schools/$s1/admissions", [], $principal);
+check(count($b['admissions']) === 2 && $b['counts']['enquiry'] === 2, 'admissions list', $b['counts'] ?? $b);
+$riya = array_values(array_filter($b['admissions'], fn($a) => $a['firstName'] === 'Riya'))[0];
+check($riya['details']['bloodGroup'] === 'B+' && $riya['fatherPhone'] === '9000000010' && $riya['source'] === 'online', 'online details kept', $riya);
+[$st] = call('GET', "/schools/$s1/admissions", [], $teacher);
+check($st === 403, 'teacher cannot see admissions');
+[$st, $b] = call('PATCH', "/schools/$s1/admissions/{$riya['id']}", ['status' => 'registered', 'registrationFee' => 1000, 'receiptNo' => 'R-2', 'religion' => 'Hindu'], $principal);
+check($b['admission']['status'] === 'registered' && $b['admission']['details']['religion'] === 'Hindu' && $b['admission']['details']['bloodGroup'] === 'B+', 'application registered, details merged', $b);
+$nurseryA = $divisions['Nursery A'];
+[$st, $b] = call('POST', "/schools/$s1/admissions/{$riya['id']}/admit", ['divisionId' => $nurseryA], $principal);
+check($st === 201 && count($b['parents']) === 2 && $b['parents'][0]['inviteLink'] && $b['admissionNo'] !== '', 'admit creates student + parent links', $b);
+$riyaStudent = $b['studentId'];
+[$st] = call('POST', "/schools/$s1/admissions/{$riya['id']}/admit", ['divisionId' => $nurseryA], $principal);
+check($st === 409, 'cannot admit twice');
+[$st, $b] = call('GET', "/schools/$s1/students/$riyaStudent", [], $principal);
+check($b['student']['division'] === 'Nursery A' && count($b['guardians']) === 2, 'admitted child is in class with both parents', $b);
+
+// --- syllabus
+$subjects = array_column(call('GET', "/schools/$s1/setup", [], $principal)[1]['subjects'], 'id', 'name');
+$english = $subjects['English'];
+$grade1 = call('GET', "/schools/$s1/setup", [], $principal)[1]['divisions'];
+$grade1 = array_values(array_filter($grade1, fn($d) => $d['label'] === 'Class 1 A'))[0]['gradeId'];
+[$st] = call('POST', "/schools/$s1/syllabus/units", ['gradeId' => $grade1, 'subjectId' => $english, 'title' => 'Letters'], $teacher);
+check($st === 403, 'teacher cannot edit syllabus');
+[$st, $b] = call('POST', "/schools/$s1/syllabus/units", ['gradeId' => $grade1, 'subjectId' => $english, 'title' => 'Letters', 'month' => 'June'], $principal);
+check($st === 201, 'chapter added', $b);
+$unit = $b['id'];
+[$st, $b] = call('POST', "/schools/$s1/syllabus/units/$unit/lessons", ['lines' => ['Letter A | abc-s1-e01', 'Letter B | https://youtu.be/b', '', 'Revision A-B']], $principal);
+check($st === 201 && count($b['ids']) === 3, 'lessons pasted one per line', $b);
+$lessonA = $b['ids'][0];
+[$st, $b] = call('POST', "/schools/$s1/syllabus/units/$unit/lessons", ['lines' => ['Bad | javascript:x']], $principal);
+check($st === 400 && str_contains($b['error'] ?? '', 'Line 1'), 'bad line named', $b);
+[$st, $b] = call('POST', "/schools/$s1/syllabus/plan", ['gradeId' => $grade1, 'subjectId' => $english, 'startOn' => '2026-11-14', 'skip' => ['2026-11-16']], $principal);
+check($st === 200 && $b['lessons'] === 3 && $b['to'] === '2026-11-18', 'day-wise plan skips Sunday and holiday', $b);
+[$st, $b] = call('GET', "/schools/$s1/syllabus", [], $teacher, ['divisionId' => $class1, 'subjectId' => $english]);
+check($st === 200 && $b['total'] === 3 && $b['units'][0]['lessons'][0]['lessonCode'] === 'ABC-S1-E01' && $b['units'][0]['lessons'][1]['plannedOn'] === '2026-11-17', 'teacher sees plan', $b);
+[$st] = call('PUT', "/schools/$s1/syllabus/lessons/$lessonA/done", ['divisionId' => $class1], $teacher);
+check($st === 200, 'teacher ticks a lesson');
+[$st] = call('PUT', "/schools/$s1/syllabus/lessons/$lessonA/done", ['divisionId' => $nurseryA], $principal);
+check($st === 400, 'lesson of another class refused');
+[$st, $b] = call('GET', "/schools/$s1/syllabus", [], $parent, ['divisionId' => $class1, 'subjectId' => $english]);
+check($st === 200 && $b['done'] === 1, 'parent sees progress for own child class', $b);
+[$st] = call('GET', "/schools/$s1/syllabus", [], $parent, ['gradeId' => $grade1, 'subjectId' => $english]);
+check($st === 400, 'parent must use own class');
+[$st] = call('GET', "/schools/$s1/syllabus", [], $parent, ['divisionId' => $class2, 'subjectId' => $english]);
+check($st === 403, 'parent cannot see other class');
+[$st, $b] = call('GET', "/schools/$s1/syllabus/day", [], $teacher, ['divisionId' => $class1, 'date' => '2026-11-14']);
+check(count($b['lessons']) === 1 && $b['lessons'][0]['subject'] === 'English' && $b['lessons'][0]['doneOn'] !== null, 'lessons for a day', $b);
+[$st, $b] = call('GET', "/schools/$s1/syllabus/overview", [], $principal);
+check($b['classes'][0]['lessons'] === 3 && $b['classes'][0]['planned'] === 3, 'syllabus overview', $b);
+[, $b] = call('POST', "/schools/$s1/assistant", ['text' => 'प्रवेश के आवेदन दिखाओ'], $principal);
+check($b['action'] === 'admissions', 'assistant: admissions in Hindi', $b);
+[, $b] = call('POST', "/schools/$s1/assistant", ['text' => 'open syllabus'], $teacher);
+check($b['action'] === 'syllabus', 'assistant: syllabus', $b);
 
 // --- staff leaving loses access; pause school
 [$st] = call('PATCH', "/schools/$s1/staff/$ashaStaff", ['status' => 'left'], $principal);

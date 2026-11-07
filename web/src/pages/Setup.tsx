@@ -4,7 +4,7 @@ import { useApi } from '../lib/useApi'
 import { t } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { STAGE_LABEL, type Division, type SchoolRef, type Setup, type Stage, type Staff } from '../lib/types'
-import { Alert, Button, Card, Field, Input, Loading, PageTitle, Select } from '../ui/kit'
+import { Alert, Button, Card, Field, Input, Loading, PageTitle, Select, Textarea } from '../ui/kit'
 
 export function SetupPage({ school }: { school: SchoolRef }) {
   const { refresh } = useSession()
@@ -81,6 +81,7 @@ export function SetupPage({ school }: { school: SchoolRef }) {
       </Card>
 
       <SchoolLook school={school} setup={data} onSaved={() => { void refresh(); reload() }} />
+      <LoginLook school={school} setup={data} onSaved={reload} />
     </div>
   )
 }
@@ -115,6 +116,47 @@ function SchoolLook({ school, setup, onSaved }: { school: SchoolRef; setup: Setu
           <Field label="Logo link" hint="https:// link to a square logo image"><Input type="url" value={f.logoUrl} onChange={e => setF({ ...f, logoUrl: e.target.value })} /></Field>
           <Field label="School colour"><Input type="color" value={f.color} onChange={e => setF({ ...f, color: e.target.value })} className="color" /></Field>
         </div>
+        {msg ? <Alert kind={msg.kind}>{msg.text}</Alert> : null}
+        <Button type="submit" busy={busy}>{t('Save')}</Button>
+      </form>
+    </Card>
+  )
+}
+
+/** The big panel on the school's sign-in page, and whether parents can apply online. */
+function LoginLook({ school, setup, onSaved }: { school: SchoolRef; setup: Setup; onSaved: () => void }) {
+  const b = setup.school.loginBoard ?? {}
+  const [f, setF] = useState({ headline: b.headline ?? '', imageUrl: b.imageUrl ?? '', lines: (b.lines ?? []).join('\n'), admissionsOpen: setup.school.admissionsOpen })
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setMsg(null)
+    try {
+      const lines = f.lines.split('\n').map(l => l.trim()).filter(Boolean)
+      const board = f.headline || f.imageUrl || lines.length ? { headline: f.headline || undefined, imageUrl: f.imageUrl || undefined, lines } : null
+      await patch(`/schools/${school.id}/settings`, { loginBoard: board, admissionsOpen: f.admissionsOpen })
+      setMsg({ kind: 'ok', text: t('Saved') })
+      onSaved()
+    } catch (err) {
+      setMsg({ kind: 'error', text: (err as Error).message })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Card>
+      <form className="stack" onSubmit={submit}>
+        <h2>{t('Sign-in page')}</h2>
+        <p className="muted small">{t('Parents and teachers see this next to the sign-in box. Use it for admissions, events or your school photo.')}{' '}
+          <a href={`/${school.slug}`} target="_blank" rel="noopener noreferrer">{t('Preview')} ↗</a></p>
+        <div className="grid2">
+          <Field label={t('Headline')}><Input value={f.headline} onChange={e => setF({ ...f, headline: e.target.value })} maxLength={100} placeholder={t('e.g. Admissions open for 2027-28')} /></Field>
+          <Field label={t('Banner picture link')} hint={t('https:// link to a wide photo (optional)')}><Input type="url" value={f.imageUrl} onChange={e => setF({ ...f, imageUrl: e.target.value })} /></Field>
+        </div>
+        <Field label={t('Short lines (up to 4, one per line)')}><Textarea rows={4} value={f.lines} onChange={e => setF({ ...f, lines: e.target.value })} placeholder={'Smart classes from Nursery\nSchool bus in all areas'} /></Field>
+        <label className="check"><input type="checkbox" checked={f.admissionsOpen} onChange={e => setF({ ...f, admissionsOpen: e.target.checked })} /> {t('Admissions open: parents can apply online')}</label>
         {msg ? <Alert kind={msg.kind}>{msg.text}</Alert> : null}
         <Button type="submit" busy={busy}>{t('Save')}</Button>
       </form>

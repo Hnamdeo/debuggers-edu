@@ -19,9 +19,12 @@ sign-in page in that school's logo and colour.
 | Homework | Homework, worksheets, revision and video lessons (a Thinkle Tots lesson code such as ABC-S1-E01 and a YouTube link) for one or more sections |
 | Notices | To everyone, all parents, all staff, or one class |
 | Home | "What would you like to do?" box (typed or spoken, English or Hindi) plus the person's own buttons and today's numbers |
+| Admissions | Online form for parents at `/<school>/apply` (school opens or closes it); office adds walk-ins; enquiry → registered (fee, receipt, call-back date, notes) → admitted into a section, which creates the student and both parents' sign-up links |
+| Syllabus | Per class and subject: chapters with lessons (paste one per line, with a lesson code or video link), day-wise plan that skips Sundays and holidays, teachers tick lessons as taught and give a lesson as homework in one tap, parents see progress |
+| Sign-in page | School's own banner on the left (headline, short lines, optional photo, office phone, "Admissions open"), sign-in on the right; stacked on phones |
 | Language | English and Hindi switch on every screen |
 
-Next: full admission form, syllabus (day-wise and subject-wise, with YouTube lessons), fees, payroll.
+Next: fees, payroll.
 
 ## How it is built
 
@@ -31,7 +34,7 @@ school/
     index.php     the only entry point (/api/*)
     src/Core/     router, sign-in, tenants (schools), permissions, events, audit, migrations
     src/Modules/  one class per feature area: Platform, Auth, Setup, People, Attendance,
-                  Homework, Notices, Home. A new area (Fees, Payroll, Syllabus, LMS) is a new
+                  Homework, Notices, Admissions, Syllabus, Home. A new area (Fees, Payroll, Syllabus, LMS) is a new
                   module added to src/modules.php; nothing else changes.
     migrations/   numbered SQL files, run once each, never edited after release
     tests/run.php integration tests against a real database
