@@ -16,7 +16,7 @@ if (!str_contains($dbName, 'test')) { fwrite(STDERR, "Refusing: database name mu
 Config::set([
     'db_host' => ($url['host'] ?? '127.0.0.1') . (isset($url['port']) ? ';port=' . $url['port'] : ''),
     'db_name' => $dbName, 'db_user' => $url['user'] ?? 'root', 'db_pass' => $url['pass'] ?? '',
-    'deploy_key' => str_repeat('k', 32), 'app_url' => 'https://school.test',
+    'deploy_key' => str_repeat('k', 32), 'app_url' => 'https://school.test', 'starter_schools' => '',
 ]);
 
 $db = Db::get();
@@ -65,6 +65,18 @@ check($st === 200 && !is_file($tokenFile), 'deploy token works once and is delet
 [$st] = call('POST', '/system/migrate', [], null, [], ['x-deploy-token' => str_repeat('t', 48)]);
 check($st === 403, 'used deploy token refused');
 @unlink($tokenFile);
+// starter schools from the seed file are added once, by link name
+$seedFile = tempnam(sys_get_temp_dir(), 'seed');
+file_put_contents($seedFile, json_encode([['slug' => 'seed-one', 'name' => 'Seed One School', 'template' => 'primary'], ['slug' => 'Bad slug!', 'name' => 'x']]));
+Config::set(['starter_schools' => $seedFile] + Config::load());
+[$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
+check($st === 200 && $b['schoolsAdded'] === ['seed-one'], 'starter school added', $b);
+check((int)$db->value('SELECT COUNT(*) FROM grades g JOIN schools s ON s.id = g.school_id WHERE s.slug = ?', ['seed-one']) > 0, 'starter school gets classes');
+[$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
+check($b['schoolsAdded'] === [], 'starter school added only once', $b);
+$db->exec('DELETE FROM schools WHERE slug = ?', ['seed-one']);
+Config::set(['starter_schools' => ''] + Config::load());
+unlink($seedFile);
 check(count(Migrator::statements("-- c\nSELECT 1;\nSELECT 2;\n")) === 2, 'migration splitter');
 
 [$st, $b] = call('POST', '/system/bootstrap', ['name' => 'Team', 'email' => 'team@thinkletots.com', 'password' => 'short'], null, [], $key);
