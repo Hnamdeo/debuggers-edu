@@ -84,3 +84,13 @@ export function todayIso(): string {
   // India time, whatever the phone's clock zone is
   return new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10)
 }
+
+/** Footer credit to the parent company, same wording and link as the game and website. */
+export function Credit({ className = 'muted small center' }: { className?: string }) {
+  return (
+    <p className={className}>
+      Developed and designed by{' '}
+      <a href="https://solutions.debuggersspace.com/" target="_blank" rel="noopener noreferrer">Debuggers Space Solutions</a>
+    </p>
+  )
+}

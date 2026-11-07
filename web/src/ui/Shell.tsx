@@ -4,6 +4,7 @@ import { navigate, usePath } from '../lib/router'
 import { setLang, t, useLang } from '../lib/i18n'
 import { patch } from '../lib/api'
 import type { Action, SchoolRef } from '../lib/types'
+import { Credit } from './kit'
 
 const NAV: { action: Action | 'home'; icon: string; label: string; path: string }[] = [
   { action: 'home', icon: '🏠', label: 'Home', path: 'home' },
@@ -85,7 +86,7 @@ export function Shell({ school, children }: { school: SchoolRef; children: React
           )
         })}
       </nav>
-      <footer className="foot muted">Powered by Thinkle Tots</footer>
+      <footer className="foot muted"><Credit className="" /></footer>
     </div>
   )
 }
