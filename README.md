@@ -23,10 +23,11 @@ sign-in page in that school's logo and colour.
 | Syllabus | Per class and subject: chapters with lessons (paste one per line, with a lesson code or video link), day-wise plan that skips Sundays and holidays, teachers tick lessons as taught and give a lesson as homework in one tap, parents see progress |
 | Fees | Class fees set once for many classes (one-time, 2/4 parts or monthly), take payment (cash, UPI, cheque, bank, card) with numbered receipts to print or send on WhatsApp, concessions and extra charges per child, "due now" list, today's collection by mode, cancel receipts with a reason (admin/principal), parents see their child's fees |
 | Salary (payroll) | Monthly salary per employee (basic, allowances, fixed deductions, PF 12% capped at ₹1,800), salary sheet per month with unpaid days, bonus and advance recovery, finalise, mark paid (bank/cash/UPI/cheque), printable payslips, staff see their own payslips |
+| Exams and report cards | Exams per class and subject with maximum marks, teachers type marks per section (AB for absent, half marks), results with total, %, CBSE grade (A1-E), rank and "needs support", class teacher remark, publish to parents, printable report card with attendance |
 | Sign-in page | School's own banner on the left (headline, short lines, optional photo, office phone, "Admissions open"), sign-in on the right; stacked on phones |
 | Language | English and Hindi switch on every screen |
 
-Next: report cards, staff leave, LMS lessons.
+Next: staff leave, LMS lessons.
 
 ## How it is built
 

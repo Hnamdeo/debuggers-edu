@@ -15,6 +15,7 @@ import { ChildPage } from './pages/Child'
 import { PlatformPage } from './pages/Platform'
 import { AdmissionDetail, AdmissionsPage, ApplyPage, NewAdmission } from './pages/Admissions'
 import { SyllabusPage } from './pages/Syllabus'
+import { ExamPage, ExamResultsPage, ExamsPage, MarksEntryPage, ReportCardPage } from './pages/Exams'
 import { PayrollPage, PayrollRunPage, PayslipPage } from './pages/Payroll'
 import { FeeAccountPage, FeeReceiptPage, FeeSetupPage, FeesPage } from './pages/Fees'
 import type { ReactNode } from 'react'
@@ -41,6 +42,11 @@ const SCHOOL_ROUTES: [string, (s: SchoolRef, p: Record<string, string>) => React
   ['fees/setup', s => <FeeSetupPage school={s} />],
   ['fees/student/:id', (s, p) => <FeeAccountPage school={s} studentId={Number(p.id)} />],
   ['fees/receipt/:id', (s, p) => <FeeReceiptPage school={s} paymentId={Number(p.id)} />],
+  ['exams', s => <ExamsPage school={s} />],
+  ['exams/:id', (s, p) => <ExamPage school={s} examId={Number(p.id)} />],
+  ['exams/:id/marks/:div/:sub', (s, p) => <MarksEntryPage school={s} examId={Number(p.id)} divisionId={Number(p.div)} subjectId={Number(p.sub)} />],
+  ['exams/:id/results/:div', (s, p) => <ExamResultsPage school={s} examId={Number(p.id)} divisionId={Number(p.div)} />],
+  ['exams/:id/report/:student', (s, p) => <ReportCardPage school={s} examId={Number(p.id)} studentId={Number(p.student)} />],
   ['payroll', s => <PayrollPage school={s} />],
   ['payroll/slip/:id', (s, p) => <PayslipPage school={s} slipId={Number(p.id)} />],
   ['payroll/:id', (s, p) => <PayrollRunPage school={s} runId={Number(p.id)} />],

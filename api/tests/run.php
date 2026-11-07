@@ -53,7 +53,7 @@ $key = ['x-deploy-key' => str_repeat('k', 32)];
 [$st, $b] = call('POST', '/system/migrate', [], null, [], ['x-deploy-key' => 'wrong']);
 check($st === 403, 'migrate needs the deploy key', $st);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
-check($st === 200 && count($b['applied']) === 10, 'migrations apply', $b);
+check($st === 200 && count($b['applied']) === 11, 'migrations apply', $b);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
 check($b['applied'] === [], 'migrations run once', $b);
 $tokenFile = dirname(__DIR__) . '/.deploy-token';
@@ -415,6 +415,47 @@ check($st === 200 && $b['payslip']['accountLast4'] === '4321', 'teacher opens ow
 [$st] = call('GET', "/schools/$s1/payroll/payslips/$slip", [], $parent);
 check($st === 403, 'others cannot open a payslip');
 check(School\Modules\HomeModule::intent('salary banana hai', ['payroll', 'staff']) === 'payroll', 'assistant understands salary');
+
+// --- exams and report cards
+check(School\Modules\ExamsModule::gradeFor(91) === 'A1' && School\Modules\ExamsModule::gradeFor(90.9) === 'A2' && School\Modules\ExamsModule::gradeFor(32) === 'E', 'CBSE grade scale');
+$subs = array_column(call('GET', "/schools/$s1/setup", [], $principal)[1]['subjects'], 'id', 'name');
+[$st, $b] = call('POST', "/schools/$s1/exams", ['name' => 'Half-yearly', 'startsOn' => date('Y-m-d'), 'gradeIds' => [$g1], 'subjectIds' => [$subs['English'], $subs['Mathematics'] ?? $subs['Maths'] ?? array_values($subs)[1]], 'maxMarks' => 50], $principal);
+check($st === 201 && count($b['classes']) === 1 && count($b['classes'][0]['papers']) === 2 && $b['classes'][0]['sections'][0]['students'] === 3, 'exam created with papers per class', $b);
+$exam = $b['exam']['id'];
+[$eng, $math] = array_map(fn($p) => $p['subjectId'], $b['classes'][0]['papers']);
+[$st] = call('POST', "/schools/$s1/exams", ['name' => 'X', 'gradeIds' => [$g1], 'subjectIds' => [$eng]], $teacher);
+check($st === 403, 'teacher cannot create exams');
+[$st, $b] = call('GET', "/schools/$s1/exams/$exam/marks", [], $teacher, ['divisionId' => $class1, 'subjectId' => $eng]);
+check($st === 200 && count($b['students']) === 3 && $b['paper']['maxMarks'] === 50, 'teacher opens marks sheet', $b);
+$kids = array_column($b['students'], 'studentId');
+[$st, $b] = call('PUT', "/schools/$s1/exams/$exam/marks", ['divisionId' => $class1, 'subjectId' => $eng, 'marks' => [['studentId' => $kids[0], 'marks' => 51]]], $teacher);
+check($st === 400, 'marks above maximum refused', $b);
+call('PUT', "/schools/$s1/exams/$exam/marks", ['divisionId' => $class1, 'subjectId' => $eng, 'marks' => [['studentId' => $kids[0], 'marks' => 46.5], ['studentId' => $kids[1], 'marks' => 30], ['studentId' => $kids[2], 'absent' => true]]], $teacher);
+[$st, $b] = call('PUT', "/schools/$s1/exams/$exam/marks", ['divisionId' => $class1, 'subjectId' => $math, 'marks' => [['studentId' => $kids[0], 'marks' => 48], ['studentId' => $kids[1], 'marks' => 12]]], $teacher);
+check($st === 200 && $b['saved'] === 2, 'marks saved');
+[$st, $b] = call('GET', "/schools/$s1/exams/$exam/results", [], $teacher, ['divisionId' => $class1]);
+$r = array_column($b['students'], null, 'studentId');
+check($r[$kids[0]]['total'] === 94.5 && $r[$kids[0]]['percent'] === 94.5 && $r[$kids[0]]['grade'] === 'A1' && $r[$kids[0]]['rank'] === 1, 'topper result', $r[$kids[0]]);
+check($r[$kids[1]]['result'] === 'needs_support' && $r[$kids[1]]['rank'] === 2 && $r[$kids[2]]['result'] === 'pending' && $r[$kids[2]]['rank'] === null, 'results: needs support, pending', [$r[$kids[1]], $r[$kids[2]]]);
+[$st] = call('PUT', "/schools/$s1/exams/$exam/remarks", ['studentId' => $shivi, 'remark' => 'Excellent reader!'], $teacher);
+check($st === 200, 'class teacher adds remark');
+[$st] = call('GET', "/schools/$s1/exams/$exam/report/$shivi", [], $parent);
+check($st === 403, 'parent waits until results are published');
+[$st, $b] = call('GET', "/schools/$s1/report-cards/$shivi", [], $parent);
+check($b['exams'] === [], 'unpublished exam hidden from parent', $b);
+[$st] = call('POST', "/schools/$s1/exams/$exam/publish", ['published' => true], $principal);
+check($st === 200, 'results published');
+[$st] = call('PUT', "/schools/$s1/exams/$exam/marks", ['divisionId' => $class1, 'subjectId' => $eng, 'marks' => [['studentId' => $kids[0], 'marks' => 10]]], $teacher);
+check($st === 409, 'marks locked once published');
+[$st, $b] = call('GET', "/schools/$s1/exams/$exam/report/$shivi", [], $parent);
+check($st === 200 && $b['remark'] === 'Excellent reader!' && $b['class'] === 'Class 1 A' && count($b['subjects']) === 2, 'parent sees report card', $b);
+[$st, $b] = call('GET', "/schools/$s1/report-cards/$shivi", [], $parent);
+check(count($b['exams']) === 1, 'published exam listed for parent');
+[$st] = call('GET', "/schools/$s1/exams/$exam/report/$aarav", [], $parent);
+check($st === 403, 'parent cannot see another child report');
+[$st] = call('DELETE', "/schools/$s1/exams/$exam", [], $principal);
+check($st === 409, 'published exam cannot be deleted');
+check(School\Modules\HomeModule::intent('half yearly marks dalna hai', ['exams', 'students']) === 'exams', 'assistant understands marks');
 
 // --- staff leaving loses access; pause school
 [$st] = call('PATCH', "/schools/$s1/staff/$ashaStaff", ['status' => 'left'], $principal);

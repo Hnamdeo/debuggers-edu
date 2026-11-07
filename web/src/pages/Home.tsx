@@ -16,6 +16,7 @@ const ACTION_UI: Record<Action, { icon: string; label: string }> = {
   admissions: { icon: '📝', label: 'Admissions' },
   fees: { icon: '💰', label: 'Take fees' },
   payroll: { icon: '💼', label: 'Salary' },
+  exams: { icon: '📊', label: 'Exams and marks' },
   'add-student': { icon: '➕', label: 'Add a student' },
   syllabus: { icon: '📖', label: 'Syllabus' },
   students: { icon: '🎒', label: 'Students' },

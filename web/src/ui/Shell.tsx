@@ -12,6 +12,7 @@ const NAV: { action: Action | 'home'; icon: string; label: string; path: string 
   { action: 'attendance', icon: '✅', label: 'Attendance', path: 'attendance' },
   { action: 'homework', icon: '📚', label: 'Homework', path: 'homework' },
   { action: 'syllabus', icon: '📖', label: 'Syllabus', path: 'syllabus' },
+  { action: 'exams', icon: '📊', label: 'Exams', path: 'exams' },
   { action: 'notice', icon: '📢', label: 'Notices', path: 'notices' },
   { action: 'fees', icon: '💰', label: 'Fees', path: 'fees' },
   { action: 'admissions', icon: '📝', label: 'Admissions', path: 'admissions' },
@@ -25,7 +26,7 @@ export function actionPath(slug: string, action: Action): string {
   const map: Record<Action, string> = {
     children: 'home', attendance: 'attendance', homework: 'homework', notice: 'notices',
     'add-student': 'students/new', students: 'students', staff: 'staff', setup: 'setup',
-    admissions: 'admissions', syllabus: 'syllabus', fees: 'fees', payroll: 'payroll',
+    admissions: 'admissions', syllabus: 'syllabus', fees: 'fees', payroll: 'payroll', exams: 'exams',
   }
   return `/${slug}/${map[action]}`
 }
@@ -35,7 +36,7 @@ export function navFor(school: SchoolRef): typeof NAV {
   const leader = r.includes('admin') || r.includes('principal')
   const academic = leader || r.includes('academic_head') || r.includes('teacher')
   const allowed = new Set<string>(['home', 'notice'])
-  if (academic) { allowed.add('attendance'); allowed.add('homework'); allowed.add('syllabus') }
+  if (academic) { allowed.add('attendance'); allowed.add('homework'); allowed.add('syllabus'); allowed.add('exams') }
   if (leader || r.includes('accounts')) { allowed.add('admissions'); allowed.add('fees') }
   if (r.includes('parent') && !academic) allowed.add('homework')
   if (academic || r.includes('accounts')) allowed.add('students')
