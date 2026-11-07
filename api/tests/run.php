@@ -53,7 +53,7 @@ $key = ['x-deploy-key' => str_repeat('k', 32)];
 [$st, $b] = call('POST', '/system/migrate', [], null, [], ['x-deploy-key' => 'wrong']);
 check($st === 403, 'migrate needs the deploy key', $st);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
-check($st === 200 && count($b['applied']) === 9, 'migrations apply', $b);
+check($st === 200 && count($b['applied']) === 10, 'migrations apply', $b);
 [$st, $b] = call('POST', '/system/migrate', [], null, [], $key);
 check($b['applied'] === [], 'migrations run once', $b);
 $tokenFile = dirname(__DIR__) . '/.deploy-token';
@@ -374,6 +374,47 @@ check(count($b['students']) === 3 && !in_array('Shivi N', array_column($b['stude
 [$st] = call('GET', "/schools/$s2/fees/students/$shivi", [], $principal);
 check($st === 403 || $st === 404, 'fees stay inside their school', $st);
 check(School\Modules\HomeModule::intent('fees baki hai', ['fees', 'students']) === 'fees', 'assistant understands fees');
+
+// --- payroll
+$calc = School\Modules\PayrollModule::calculate(['basic' => 20000, 'allowances' => [['name' => 'HRA', 'amount' => 6000]], 'deductions' => [['name' => 'Professional tax', 'amount' => 200]], 'pf' => true], 30, 3, 1000, 500);
+check($calc['gross'] === 18000 + 5400 + 1000 && $calc['deductions'][0]['amount'] === 1800 && $calc['net'] === 24400 - 1800 - 200 - 500, 'salary sum with unpaid days, PF cap, bonus, advance', $calc);
+[$st, $b] = call('GET', "/schools/$s1/payroll/salaries", [], $principal);
+check($st === 200 && count($b['staff']) >= 1 && !$b['staff'][0]['set'], 'staff list for salaries', $b);
+[$st] = call('GET', "/schools/$s1/payroll/salaries", [], $teacher);
+check($st === 403, 'teacher cannot see salaries');
+[$st, $b] = call('POST', "/schools/$s1/payroll/runs", ['month' => '2026-11'], $principal);
+check($st === 400, 'salary sheet needs salaries first', $b);
+[$st, $b] = call('PUT', "/schools/$s1/payroll/salaries/$ashaStaff", ['basic' => 15000, 'allowances' => [['name' => 'HRA', 'amount' => 3000], ['name' => '', 'amount' => '']], 'deductions' => [['name' => 'Professional tax', 'amount' => 200]], 'pf' => true, 'accountLast4' => '4321'], $principal);
+check($st === 200 && $b['gross'] === 18000 && $b['net'] === 18000 - 1800 - 200, 'salary set', $b);
+[$st] = call('PUT', "/schools/$s1/payroll/salaries/$ashaStaff", ['basic' => 15000, 'accountLast4' => '123456789012'], $principal);
+check($st === 400, 'only last 4 account digits kept');
+[$st, $b] = call('POST', "/schools/$s1/payroll/runs", ['month' => '2026-11'], $principal);
+check($st === 201 && count($b['slips']) === 1 && $b['slips'][0]['daysInMonth'] === 30 && $b['totals']['net'] === 16000, 'salary sheet made for the month', $b['totals'] ?? $b);
+$run = $b['run']['id'];
+$slip = $b['slips'][0]['id'];
+[$st] = call('POST', "/schools/$s1/payroll/runs", ['month' => '2026-11'], $principal);
+check($st === 409, 'one sheet per month');
+[$st, $b] = call('PATCH', "/schools/$s1/payroll/runs/$run/slips/$slip", ['unpaidDays' => '1.5', 'bonus' => 500], $principal);
+check($st === 200 && $b['slips'][0]['gross'] === 17100 + 500 && $b['slips'][0]['unpaidDays'] === 1.5, 'unpaid days and bonus', $b['slips'][0] ?? $b);
+[$st, $b] = call('GET', "/schools/$s1/payroll/my-payslips", [], $teacher);
+check($st === 200 && $b['payslips'] === [], 'draft payslip not shown to staff yet', $b);
+[$st] = call('POST', "/schools/$s1/payroll/runs/$run/pay", ['mode' => 'bank'], $principal);
+check($st === 409, 'pay only after finalising');
+[$st] = call('POST', "/schools/$s1/payroll/runs/$run/finalise", [], $principal);
+check($st === 200, 'sheet finalised');
+[$st] = call('PATCH', "/schools/$s1/payroll/runs/$run/slips/$slip", ['bonus' => 1], $principal);
+check($st === 409, 'final sheet cannot change');
+[$st] = call('DELETE', "/schools/$s1/payroll/runs/$run", [], $principal);
+check($st === 409, 'final sheet cannot be deleted');
+[$st, $b] = call('POST', "/schools/$s1/payroll/runs/$run/pay", ['mode' => 'bank', 'reference' => 'NEFT1', 'paidOn' => '2026-11-30'], $principal);
+check($b['totals']['paid'] === 1 && $b['slips'][0]['paidOn'] === '2026-11-30', 'salaries marked paid', $b['totals']);
+[$st, $b] = call('GET', "/schools/$s1/payroll/my-payslips", [], $teacher);
+check(count($b['payslips']) === 1 && $b['payslips'][0]['month'] === '2026-11', 'teacher sees own payslip', $b);
+[$st, $b] = call('GET', "/schools/$s1/payroll/payslips/$slip", [], $teacher);
+check($st === 200 && $b['payslip']['accountLast4'] === '4321', 'teacher opens own payslip', $b);
+[$st] = call('GET', "/schools/$s1/payroll/payslips/$slip", [], $parent);
+check($st === 403, 'others cannot open a payslip');
+check(School\Modules\HomeModule::intent('salary banana hai', ['payroll', 'staff']) === 'payroll', 'assistant understands salary');
 
 // --- staff leaving loses access; pause school
 [$st] = call('PATCH', "/schools/$s1/staff/$ashaStaff", ['status' => 'left'], $principal);

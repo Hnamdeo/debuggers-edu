@@ -295,3 +295,5 @@ a.pill { text-decoration: none; }
   .no-print, .shell > header, .shell nav, .foot, .page-title button, .page-title a { display: none !important; }
   .receipt { box-shadow: none; border: 1px solid #999; }
 }
+
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

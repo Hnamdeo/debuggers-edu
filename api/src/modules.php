@@ -14,5 +14,6 @@ return [
     School\Modules\AdmissionsModule::class,
     School\Modules\SyllabusModule::class,
     School\Modules\FeesModule::class,
+    School\Modules\PayrollModule::class,
     School\Modules\HomeModule::class,
 ];

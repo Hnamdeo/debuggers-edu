@@ -53,7 +53,7 @@ export interface Homework {
 
 export interface Notice { id: number; title: string; body: string | null; audience: string; division: string | null; author: string | null; createdAt: string; mine: boolean }
 
-export type Action = 'children' | 'attendance' | 'homework' | 'notice' | 'admissions' | 'fees' | 'add-student' | 'syllabus' | 'students' | 'staff' | 'setup'
+export type Action = 'children' | 'attendance' | 'homework' | 'notice' | 'admissions' | 'fees' | 'payroll' | 'add-student' | 'syllabus' | 'students' | 'staff' | 'setup'
 
 export interface Home {
   school: School; roles: Role[]; actions: Action[]; today: string
@@ -102,4 +102,19 @@ export interface FeeLine { kind: 'fee' | 'adjustment'; id: number; label: string
 export interface FeeAccount extends FeeBalance {
   student: { id: number; name: string; admissionNo: string; class: string | null }
   yearId: number; lines: FeeLine[]; payments: FeePayment[]; next: FeeLine | null
+}
+
+export interface PayLine { name: string; amount: number }
+export interface Salary { basic: number; allowances: PayLine[]; deductions: PayLine[]; pf: boolean; bankName: string | null; accountLast4: string | null }
+export interface SalaryRow { staffId: number; name: string; designation: string | null; employeeCode: string | null; salary: Salary; gross: number; net: number; set: boolean }
+export interface Payslip {
+  id: number; staffId: number; name: string; designation: string | null; employeeCode: string | null
+  daysInMonth: number; unpaidDays: number; bonus: number; advance: number
+  earnings: PayLine[]; deductions: PayLine[]; gross: number; totalDeductions: number; net: number
+  paidOn: string | null; payMode: string | null; payReference: string | null
+}
+export interface PayrollRunRow { id: number; month: string; status: 'draft' | 'final'; people: number; gross: number; net: number; paid: number }
+export interface PayrollRun {
+  run: { id: number; month: string; status: 'draft' | 'final'; finalisedAt: string | null }
+  slips: Payslip[]; totals: { gross: number; deductions: number; net: number; paid: number }
 }

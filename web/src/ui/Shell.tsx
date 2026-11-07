@@ -15,6 +15,7 @@ const NAV: { action: Action | 'home'; icon: string; label: string; path: string 
   { action: 'notice', icon: '📢', label: 'Notices', path: 'notices' },
   { action: 'fees', icon: '💰', label: 'Fees', path: 'fees' },
   { action: 'admissions', icon: '📝', label: 'Admissions', path: 'admissions' },
+  { action: 'payroll', icon: '💼', label: 'Salary', path: 'payroll' },
   { action: 'students', icon: '🎒', label: 'Students', path: 'students' },
   { action: 'staff', icon: '🧑‍🏫', label: 'Staff', path: 'staff' },
   { action: 'setup', icon: '⚙️', label: 'School setup', path: 'setup' },
@@ -24,7 +25,7 @@ export function actionPath(slug: string, action: Action): string {
   const map: Record<Action, string> = {
     children: 'home', attendance: 'attendance', homework: 'homework', notice: 'notices',
     'add-student': 'students/new', students: 'students', staff: 'staff', setup: 'setup',
-    admissions: 'admissions', syllabus: 'syllabus', fees: 'fees',
+    admissions: 'admissions', syllabus: 'syllabus', fees: 'fees', payroll: 'payroll',
   }
   return `/${slug}/${map[action]}`
 }
@@ -40,6 +41,7 @@ export function navFor(school: SchoolRef): typeof NAV {
   if (academic || r.includes('accounts')) allowed.add('students')
   if (leader || r.includes('academic_head') || r.includes('accounts')) allowed.add('staff')
   if (leader) allowed.add('setup')
+  if (r.some(x => x !== 'parent')) allowed.add('payroll')
   return NAV.filter(n => allowed.has(n.action))
 }
 
