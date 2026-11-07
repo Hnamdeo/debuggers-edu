@@ -4,7 +4,7 @@ import { useSession } from '../lib/session'
 import { navigate, queryParam } from '../lib/router'
 import { t } from '../lib/i18n'
 import type { Profile, SignedIn } from '../lib/types'
-import { Alert, Button, Field, Input, Loading, PasswordInput } from '../ui/kit'
+import { Alert, Button, Credit, Field, Input, Loading, PasswordInput } from '../ui/kit'
 
 interface PublicSchool { name: string; slug: string; logoUrl: string | null; color: string; city: string | null; paused: boolean }
 
@@ -203,7 +203,7 @@ export function AuthFrame({ children, color }: { children: ReactNode; color?: st
   return (
     <div className="auth" style={color ? { ['--brand' as string]: color } : undefined}>
       <div className="auth-card">{children}</div>
-      <p className="muted small center">Powered by Thinkle Tots</p>
+      <Credit />
     </div>
   )
 }
