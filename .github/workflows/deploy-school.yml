@@ -83,6 +83,11 @@ jobs:
         run: |
           mkdir -p out/api
           cp -r school/api/index.php school/api/.htaccess school/api/src school/api/migrations school/api/bin out/api/
+          # One-time token for this deploy's migrations (no key needs to be stored in GitHub)
+          token=$(openssl rand -hex 24)
+          echo "::add-mask::$token"
+          echo "$token" > out/api/.deploy-token
+          echo "DEPLOY_TOKEN=$token" >> "$GITHUB_ENV"
           ls -la out out/api
       - name: Upload to Hostinger
         if: env.FTP_SERVER != ''
@@ -109,15 +114,15 @@ jobs:
           bye
           LFTP
       - name: Run database migrations
-        if: env.FTP_SERVER != '' && env.SCHOOL_DEPLOY_KEY != ''
+        if: env.FTP_SERVER != ''
         run: |
           for i in 1 2 3 4 5; do
-            out=$(curl -sS -X POST -H "X-Deploy-Key: $SCHOOL_DEPLOY_KEY" "$SCHOOL_URL/api/system/migrate" -w '\n%{http_code}') && code=$(echo "$out" | tail -1)
+            out=$(curl -sS -X POST -H "X-Deploy-Token: $DEPLOY_TOKEN" -H "X-Deploy-Key: $SCHOOL_DEPLOY_KEY" "$SCHOOL_URL/api/system/migrate" -w '\n%{http_code}') && code=$(echo "$out" | tail -1)
             echo "$out"
             [ "$code" = "200" ] && exit 0
             sleep $((i * 5))
           done
-          echo "::error::Migrations did not run. Check the server config file and SCHOOL_DEPLOY_KEY."
+          echo "::error::Migrations did not run. Check the server config file (database name, user and password)."
           exit 1
       - name: Health check
         if: env.FTP_SERVER != ''
