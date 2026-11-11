@@ -6,7 +6,7 @@ namespace School\Modules;
 use School\Core\{Access, Events, HttpError, Module, Request, Response, Roles, Router, Services};
 
 /**
- * Homework, worksheets, revision and lessons for a class. A Thinkle Tots lesson code
+ * Homework, worksheets, revision and lessons for a class. A lesson code
  * (ABC-S1-E01) or a video link can be attached, which is how YouTube lessons become
  * homework and revision once the LMS module arrives.
  */

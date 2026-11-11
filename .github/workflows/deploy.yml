@@ -1,25 +1,23 @@
-# Tests the school app and uploads it to Hostinger over FTP.
-#   push to dev (school/ changed) -> https://school.thinkletots.com
-# There is no test copy yet (decided 7 Nov 2026); a schooldev site is added before selling to schools.
-# Pull requests run the tests only.
+# Tests Debuggers Edu and uploads it to Hostinger over FTP.
+#   push to main -> https://edu.debuggersspace.com
+# There is no test copy yet; a separate dev site is added before selling to institutions.
+# Pull requests run the tests only. Nothing is uploaded until FTP_SERVER is set.
 #
-# Needs (in addition to the game's FTP_SERVER, FTP_USERNAME and FTP_PASSWORD secrets):
+# Needs the debuggersspace.com FTP_SERVER, FTP_USERNAME and FTP_PASSWORD secrets, plus:
 #   secret   SCHOOL_DEPLOY_KEY  the same long random text as 'deploy_key' in the server config;
 #                               used after upload to run new database migrations
-#   variable SCHOOL_FTP_DIR     optional, defaults to school/ (the subdomain's folder)
-#   variable SCHOOL_URL         optional, defaults to https://school.thinkletots.com
-name: School app
+#   variable SCHOOL_FTP_DIR     optional, defaults to edu/ (the subdomain's folder)
+#   variable SCHOOL_URL         optional, defaults to https://edu.debuggersspace.com
+name: Debuggers Edu
 
 on:
   push:
-    branches: [dev]
-    paths: ['school/**', '.github/workflows/deploy-school.yml']
+    branches: [main]
   pull_request:
-    paths: ['school/**', '.github/workflows/deploy-school.yml']
   workflow_dispatch:
 
 concurrency:
-  group: school-${{ github.ref }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -43,46 +41,46 @@ jobs:
           extensions: pdo_mysql
           coverage: none
       - name: Check PHP syntax
-        run: find school/api -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+        run: find api -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
       - name: API tests (real database)
-        run: php school/api/tests/run.php
+        run: php api/tests/run.php
         env:
           SCHOOL_TEST_DB: mysql://root:root@127.0.0.1:3306/school_test
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: school/web/package-lock.json
+          cache-dependency-path: web/package-lock.json
       - name: Web app tests and build
-        working-directory: school/web
+        working-directory: web
         run: |
           npm ci
           npm test
           npm run build
       - uses: actions/upload-artifact@v4
         with:
-          name: school-web
-          path: school/web/dist
+          name: web
+          path: web/dist
           retention-days: 3
 
   deploy:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref_name == 'dev'
+    if: github.event_name != 'pull_request' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     env:
       FTP_SERVER: ${{ secrets.FTP_SERVER }}
       SCHOOL_DEPLOY_KEY: ${{ secrets.SCHOOL_DEPLOY_KEY }}
-      SCHOOL_URL: ${{ vars.SCHOOL_URL || 'https://school.thinkletots.com' }}
+      SCHOOL_URL: ${{ vars.SCHOOL_URL || 'https://edu.debuggersspace.com' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: school-web
+          name: web
           path: out
       - name: Put the API next to the app (no tests, no samples)
         run: |
           mkdir -p out/api
-          cp -r school/api/index.php school/api/.htaccess school/api/src school/api/migrations school/api/seed school/api/bin out/api/
+          cp -r api/index.php api/.htaccess api/src api/migrations api/seed api/bin out/api/
           # One-time token for this deploy's migrations (no key needs to be stored in GitHub)
           token=$(openssl rand -hex 24)
           echo "::add-mask::$token"
@@ -94,7 +92,7 @@ jobs:
         env:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_DIR: ${{ vars.SCHOOL_FTP_DIR || 'school/' }}
+          FTP_DIR: ${{ vars.SCHOOL_FTP_DIR || 'edu/' }}
         run: |
           sudo apt-get update -qq || true
           sudo apt-get install -y -qq lftp > /dev/null

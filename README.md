@@ -1,22 +1,26 @@
-# Thinkle Tots School
+# Debuggers Edu
 
-One school app on one address (school.thinkletots.com) for every school, role and screen:
-admin, principal, teachers, other staff and parents sign in at the same place and each sees
-only their own menu. Plan: https://claude.ai/artifact/MT8xKqVgmEoZQ26wMchBXs
+School and college management by Debuggers Space Solutions. One app on one address
+(edu.debuggersspace.com) for every institution, role and screen: admin, principal, teachers,
+other staff and parents sign in at the same place and each sees only their own menu.
+Handover: https://claude.ai/artifact/FuJetBMiDcqAbhseXMKBUn
 
-Each school has its own link, for example `school.thinkletots.com/bharatmata`, which opens a
+Each school has its own link, for example `edu.debuggersspace.com/bharatmata`, which opens a
 sign-in page in that school's logo and colour.
+
+Moved out of the Thinkle Tots repo (its `school/` folder, PRs #130 to #137) with its history,
+in November 2026. Colleges (courses, departments, year/semester) are next.
 
 ## What is in this first version
 
 | Area | What works |
 | --- | --- |
-| Thinkle Tots team | Add schools (board, state, starting classes), give each its first principal or admin, pause or activate |
+| Debuggers Edu team | Add schools (board, state, starting classes), give each its first principal or admin, pause or activate |
 | Sign-in | Mobile or email + password; one-time links shared on WhatsApp; one account per person across schools and roles; locked for 15 min after 8 wrong tries |
 | Setup | Year (April to March), classes grouped as Pre-primary, Primary, Middle, Secondary, Higher secondary; sections; class teachers; subjects; school logo and colour |
 | People | Students (add one, or import an Excel sheet saved as CSV), parents linked to children, staff (teachers and other employees) |
 | Attendance | Class teacher marks the class in one tap per absent child; principal sees which classes are marked; parents see a month calendar |
-| Homework | Homework, worksheets, revision and video lessons (a Thinkle Tots lesson code such as ABC-S1-E01 and a YouTube link) for one or more sections |
+| Homework | Homework, worksheets, revision and video lessons (a lesson code such as ABC-S1-E01 and a YouTube link) for one or more sections |
 | Notices | To everyone, all parents, all staff, or one class |
 | Home | "What would you like to do?" box (typed or spoken, English or Hindi) plus the person's own buttons and today's numbers |
 | Admissions | Online form for parents at `/<school>/apply` (school opens or closes it); office adds walk-ins; enquiry → registered (fee, receipt, call-back date, notes) → admitted into a section, which creates the student and both parents' sign-up links |
@@ -32,7 +36,7 @@ Next: staff leave, LMS lessons.
 ## How it is built
 
 ```
-school/
+.
   api/            PHP 8.2 + MySQL, no framework, runs on Hostinger shared hosting
     index.php     the only entry point (/api/*)
     src/Core/     router, sign-in, tenants (schools), permissions, events, audit, migrations
@@ -60,25 +64,26 @@ school/
 ```bash
 # database (MySQL or MariaDB)
 mysql -e "CREATE DATABASE school_dev; CREATE USER 'school'@'localhost' IDENTIFIED BY 'school'; GRANT ALL ON school_dev.* TO 'school'@'localhost'"
-cp school/api/config.sample.php ~/school-config.php   # fill in db_* and deploy_key
-SCHOOL_CONFIG=~/school-config.php php school/api/bin/migrate.php
-SCHOOL_CONFIG=~/school-config.php php -S 127.0.0.1:8090 -t school/api school/api/index.php
-cd school/web && npm install && npm run dev   # http://localhost:5173, /api goes to :8090
+cp api/config.sample.php ~/school-config.php   # fill in db_* and deploy_key
+SCHOOL_CONFIG=~/school-config.php php api/bin/migrate.php
+SCHOOL_CONFIG=~/school-config.php php -S 127.0.0.1:8090 -t api api/index.php
+cd web && npm install && npm run dev   # http://localhost:5173, /api goes to :8090
 ```
 
-Open http://localhost:5173/admin/start once to create the Thinkle Tots team account.
+Open http://localhost:5173/admin/start once to create the Debuggers Edu team account.
 
-Tests: `php school/api/tests/run.php` (needs an empty database whose name contains "test",
+Tests: `php api/tests/run.php` (needs an empty database whose name contains "test",
 set with `SCHOOL_TEST_DB=mysql://user:pass@127.0.0.1:3306/school_test`) and
-`cd school/web && npm test`.
+`cd web && npm test`.
 
 ## Going live (one time)
 
-1. hPanel → Domains → Subdomains: create `school.thinkletots.com` with folder `public_html/school`.
+1. hPanel (debuggersspace.com) → Domains → Subdomains: create `edu.debuggersspace.com` with folder `public_html/edu`.
 2. hPanel → Databases: create a MySQL database and user.
-3. Upload `api/config.sample.php`, filled in, as `thinkle-config.school.thinkletots.com.php` in
-   the hosting home folder (next to the game's config files, above `public_html`).
-4. GitHub → Settings → Secrets: add `SCHOOL_DEPLOY_KEY` with the same `deploy_key` value.
-5. Merge to `dev`. The "School app" workflow tests, uploads, runs migrations and checks health.
-6. Open https://school.thinkletots.com/admin/start, enter the deploy key, create your account,
+3. Upload `api/config.sample.php`, filled in, as `debuggers-edu-config.edu.debuggersspace.com.php` in
+   the hosting home folder (above `public_html`).
+4. GitHub → Settings → Secrets: add `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` (debuggersspace.com
+   FTP account) and `SCHOOL_DEPLOY_KEY` with the same `deploy_key` value.
+5. Merge to `main`. The "Debuggers Edu" workflow tests, uploads, runs migrations and checks health.
+6. Open https://edu.debuggersspace.com/admin/start, enter the deploy key, create your account,
    then add the first school.

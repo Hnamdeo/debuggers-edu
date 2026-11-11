@@ -7,18 +7,18 @@ import type { School } from '../lib/types'
 import { Alert, Button, Card, Field, Input, Loading, Select } from '../ui/kit'
 import { ShareLink } from '../ui/ShareLink'
 
-/** Thinkle Tots team only: add schools, give them their first admin, pause or activate. */
+/** Debuggers Edu team only: add schools, give them their first admin, pause or activate. */
 export function PlatformPage() {
   const { profile, signOut, refresh } = useSession()
   const { data, error, loading, reload } = useApi(() => get<{ schools: School[] }>('/platform/schools'), [])
   const [adding, setAdding] = useState(false)
   const [adminFor, setAdminFor] = useState<School | null>(null)
 
-  if (!profile?.user.isPlatformAdmin) return <div className="auth"><div className="auth-card"><Alert>Only the Thinkle Tots team can open this page.</Alert></div></div>
+  if (!profile?.user.isPlatformAdmin) return <div className="auth"><div className="auth-card"><Alert>Only the Debuggers Edu team can open this page.</Alert></div></div>
   return (
     <div className="shell">
       <header className="topbar">
-        <span className="brand"><img src="/icon.svg" alt="" className="brand-logo" /><span className="brand-name">Thinkle Tots · Schools</span></span>
+        <span className="brand"><img src="/icon.svg" alt="" className="brand-logo" /><span className="brand-name">Debuggers Edu · Institutions</span></span>
         <Button variant="ghost" onClick={() => { void signOut().then(() => navigate('/')) }}>Sign out</Button>
       </header>
       <main className="main stack-lg">
@@ -78,7 +78,7 @@ function NewSchool({ onDone }: { onDone: () => void }) {
         <h2>New school</h2>
         <div className="grid2">
           <Field label="School name"><Input value={f.name} onChange={e => setF({ ...f, name: e.target.value, slug: f.slug || '' })} required /></Field>
-          <Field label="Link name" hint={`school.thinkletots.com/${f.slug || 'bharatmata-raipur'}`}>
+          <Field label="Link name" hint={`edu.debuggersspace.com/${f.slug || 'bharatmata-raipur'}`}>
             <Input value={f.slug} onChange={e => setF({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} required pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]" />
           </Field>
           <Field label="Board">

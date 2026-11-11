@@ -93,7 +93,7 @@ export function SchoolLogin({ slug }: { slug: string }) {
   )
 }
 
-const DEFAULT_LINES = ['✅ Daily attendance in one tap', '📚 Homework and notices for parents', '📖 Syllabus and lesson progress', '🎬 Video lessons from Thinkle Tots']
+const DEFAULT_LINES = ['✅ Daily attendance in one tap', '📚 Homework and notices for parents', '📖 Syllabus and lesson progress', '🎬 Video lessons for every class']
 
 /** The big left panel: the school's own banner, headline and lines, or a friendly default. */
 function SchoolBoard({ school }: { school: PublicSchool }) {
@@ -128,7 +128,7 @@ export function Landing() {
               <span className="brand-dot">{s.name.slice(0, 1)}</span>{s.name}
             </button>
           ))}
-          {profile.user.isPlatformAdmin ? <Button variant="ghost" onClick={() => navigate('/admin')}>Thinkle Tots admin</Button> : null}
+          {profile.user.isPlatformAdmin ? <Button variant="ghost" onClick={() => navigate('/admin')}>Debuggers Edu admin</Button> : null}
         </div>
       </AuthFrame>
     )
@@ -138,7 +138,7 @@ export function Landing() {
     <AuthFrame>
       <div className="hero">
         <img src="/icon.svg" alt="" width={64} height={64} />
-        <h1>Thinkle Tots School</h1>
+        <h1>Debuggers Edu</h1>
         <p className="muted">Attendance, homework and notices for your whole school, in one simple app. Open the link your school shared, or sign in here.</p>
       </div>
       <LoginForm />
@@ -194,7 +194,7 @@ export function Welcome({ slug }: { slug?: string }) {
   )
 }
 
-/** First-time only: create the Thinkle Tots team account with the deploy key. */
+/** First-time only: create the Debuggers Edu team account with the deploy key. */
 export function FirstSetup() {
   const { signIn } = useSession()
   const [f, setF] = useState({ key: '', name: '', email: '', password: '' })
@@ -219,7 +219,7 @@ export function FirstSetup() {
   return (
     <AuthFrame>
       <h1>First-time setup</h1>
-      <p className="muted">Creates the Thinkle Tots team account. Works only once.</p>
+      <p className="muted">Creates the Debuggers Edu team account. Works only once.</p>
       <form className="stack" onSubmit={submit}>
         {error ? <Alert>{error}</Alert> : null}
         <Field label="Setup key (deploy_key from the server config)"><PasswordInput value={f.key} onChange={e => setF({ ...f, key: e.target.value })} required /></Field>

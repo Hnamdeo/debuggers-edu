@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.local
+.env
+debuggers-edu-config*.php
+thinkle-config*.php

@@ -64,7 +64,7 @@ final class App
         $platform = (bool)$req->user['is_platform_admin'];
         $roles = array_column($db->all('SELECT role FROM memberships WHERE school_id = ? AND user_id = ?', [$schoolId, $req->userId()]), 'role');
         if (!$roles && !$platform) throw HttpError::forbidden('You are not part of this school.');
-        if ($school['status'] === 'paused' && !$platform) throw HttpError::forbidden('This school account is paused. Please contact Thinkle Tots.');
+        if ($school['status'] === 'paused' && !$platform) throw HttpError::forbidden('This school account is paused. Please contact Debuggers Edu.');
         return new Tenant($schoolId, $school, $roles, $this->permissions, $platform);
     }
 }

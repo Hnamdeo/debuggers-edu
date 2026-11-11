@@ -7,7 +7,7 @@ use School\Core\{Access, Events, HttpError, Input, Module, Request, Response, Ro
 
 /**
  * Syllabus per class and subject: chapters (units) with lessons in teaching order. Lessons get a
- * day (day-wise plan), can carry a Thinkle Tots lesson code or video link (so a YouTube lesson
+ * day (day-wise plan), can carry a lesson code or video link (so a YouTube lesson
  * is one tap from homework), and are ticked off per section when taught.
  */
 final class SyllabusModule implements Module

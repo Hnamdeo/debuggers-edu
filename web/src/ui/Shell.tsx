@@ -75,7 +75,7 @@ export function Shell({ school, children }: { school: SchoolRef; children: React
               <div className="menu-who"><b>{profile?.user.name}</b><span className="muted">{school.roles.map(r => r.replace('_', ' ')).join(', ')}</span></div>
               {items.slice(5).map(n => <button key={n.path} onClick={() => navigate(`/${school.slug}/${n.path}`)}>{n.icon} {t(n.label)}</button>)}
               {otherSchools.map(s => <button key={s.id} onClick={() => navigate(`/${s.slug}/home`)}>🏫 {s.name}</button>)}
-              {profile?.user.isPlatformAdmin ? <button onClick={() => navigate('/admin')}>🛠️ Thinkle Tots admin</button> : null}
+              {profile?.user.isPlatformAdmin ? <button onClick={() => navigate('/admin')}>🛠️ Debuggers Edu admin</button> : null}
               <button onClick={() => { void signOut().then(() => navigate(`/${school.slug}`)) }}>↩︎ {t('Sign out')}</button>
             </div>
           </details>

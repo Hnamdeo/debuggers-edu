@@ -1,6 +1,6 @@
 <?php
 // Copy to the hosting home folder (above public_html), named after the site:
-//   thinkle-config.school.thinkletots.com.php
+//   debuggers-edu-config.edu.debuggersspace.com.php
 // Fill in from hPanel and never commit the real file.
 return [
     'db_host' => 'localhost',
@@ -11,7 +11,7 @@ return [
     // SCHOOL_DEPLOY_KEY so each deploy can run new database migrations.
     'deploy_key' => 'put-a-long-random-key-here',
     // Used to build invite links shared with teachers and parents
-    'app_url' => 'https://school.thinkletots.com',
-    // Optional: the same Google web client id as the game, for "Continue with Google"
+    'app_url' => 'https://edu.debuggersspace.com',
+    // Optional: a Google web client id, for "Continue with Google"
     'google_client_id' => '',
 ];

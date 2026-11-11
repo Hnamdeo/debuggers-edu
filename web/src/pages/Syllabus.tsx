@@ -147,7 +147,7 @@ function UnitCard({ school, unit, divisionId, canManage, canTeach, run, reload }
       ))}
       {canManage ? (adding ? (
         <form className="stack" onSubmit={(e: FormEvent) => { e.preventDefault(); void run(() => post(`/schools/${school.id}/syllabus/units/${unit.id}/lessons`, { lines: lines.split('\n') }), t('Lessons added')).then(() => { setLines(''); setAdding(false) }) }}>
-          <Field label={t('Lessons, one per line')} hint={t('Add a Thinkle Tots lesson code or video link after |, e.g. Letter A | ABC-S1-E01')}>
+          <Field label={t('Lessons, one per line')} hint={t('Add a lesson code or video link after |, e.g. Letter A | ABC-S1-E01')}>
             <Textarea rows={5} value={lines} onChange={e => setLines(e.target.value)} required placeholder={'Letter A | ABC-S1-E01\nLetter B | https://youtu.be/…\nRevision'} />
           </Field>
           <div className="row-start"><Button type="submit" variant="soft">{t('Add lessons')}</Button><Button type="button" variant="ghost" onClick={() => setAdding(false)}>{t('Cancel')}</Button></div>

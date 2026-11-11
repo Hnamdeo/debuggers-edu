@@ -78,7 +78,7 @@ export function App() {
   if (!profile) { navigate(`/${slug}`, true); return null }
   const school = profile.schools.find(s => s.slug === slug)
   if (!school) {
-    // The Thinkle Tots team can open any school for support
+    // The Debuggers Edu team can open any school for support
     return profile.user.isPlatformAdmin
       ? <PlatformSchool slug={slug} sub={sub} />
       : <AuthFrame><Alert>You are not part of this school. <a href="/">Go back</a></Alert></AuthFrame>

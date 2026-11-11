@@ -79,16 +79,16 @@ Config::set(['starter_schools' => ''] + Config::load());
 unlink($seedFile);
 check(count(Migrator::statements("-- c\nSELECT 1;\nSELECT 2;\n")) === 2, 'migration splitter');
 
-[$st, $b] = call('POST', '/system/bootstrap', ['name' => 'Team', 'email' => 'team@thinkletots.com', 'password' => 'short'], null, [], $key);
+[$st, $b] = call('POST', '/system/bootstrap', ['name' => 'Team', 'email' => 'team@debuggersspace.com', 'password' => 'short'], null, [], $key);
 check($st === 400, 'bootstrap rejects short password', $b);
-[$st, $b] = call('POST', '/system/bootstrap', ['name' => 'Team', 'email' => 'team@thinkletots.com', 'password' => 'team-password-1'], null, [], $key);
+[$st, $b] = call('POST', '/system/bootstrap', ['name' => 'Team', 'email' => 'team@debuggersspace.com', 'password' => 'team-password-1'], null, [], $key);
 check($st === 201, 'bootstrap creates platform admin', $b);
 [$st] = call('POST', '/system/bootstrap', ['name' => 'X', 'email' => 'x@x.com', 'password' => 'xxxxxxxxxx'], null, [], $key);
 check($st === 409, 'bootstrap only once');
 
-[$st, $b] = call('POST', '/auth/login', ['login' => 'team@thinkletots.com', 'password' => 'wrong-pass']);
+[$st, $b] = call('POST', '/auth/login', ['login' => 'team@debuggersspace.com', 'password' => 'wrong-pass']);
 check($st === 401, 'wrong password refused');
-[$st, $b] = call('POST', '/auth/login', ['login' => 'TEAM@thinkletots.com', 'password' => 'team-password-1']);
+[$st, $b] = call('POST', '/auth/login', ['login' => 'TEAM@debuggersspace.com', 'password' => 'team-password-1']);
 check($st === 200 && $b['user']['isPlatformAdmin'] === true, 'platform admin signs in', $b);
 $team = $b['token'];
 

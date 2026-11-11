@@ -6,7 +6,7 @@ namespace School\Modules;
 use School\Core\{Auth, Config, Db, Events, HttpError, Migrator, Module, Request, Response, Roles, Router, Services, Users};
 
 /**
- * The Thinkle Tots team's side: create schools (tenants), add their first admin, pause them.
+ * The Debuggers Edu team's side: create schools (tenants), add their first admin, pause them.
  * Also deploy-time routes (migrate, first platform admin) guarded by the deploy key.
  */
 final class PlatformModule implements Module
@@ -100,7 +100,7 @@ final class PlatformModule implements Module
         });
     }
 
-    /** Creates the first Thinkle Tots team account. Works only while there is none. */
+    /** Creates the first Debuggers Edu team account. Works only while there is none. */
     private function bootstrap(Request $req): Response
     {
         $this->requireDeployKey($req);
